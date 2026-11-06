@@ -1,5 +1,7 @@
 # Instalação e configuração do Aton
 
+🇺🇸 [English version](SETUP.md)
+
 Tudo que é pessoal (contas, chaves, endereços) é criado por você e fica só no seu PC, no `config.json` e em arquivos
 de token que **não** vão para o GitHub.
 

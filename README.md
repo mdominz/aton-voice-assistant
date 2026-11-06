@@ -1,75 +1,82 @@
-# Aton — assistente de voz para Windows
+# Aton — voice assistant for Windows
 
-Assistente de voz em português que roda no seu PC: você diz **"Aton"** e o pedido. Ele controla o computador, o Chrome,
-a música, o WhatsApp do PC, o Bluetooth e as janelas, lê e-mails, guarda lembretes e tem um app de celular que funciona
-de qualquer lugar por uma VPN privada.
+🇧🇷 [Leia em português](README.pt-BR.md)
 
-![O Aton respondendo, com a pergunta e a resposta em legenda](docs/imagens/wallpaper_conversa.jpg)
+> **Language note:** Aton listens and speaks **Brazilian Portuguese**. Its commands, wake word and voice are in
+> Portuguese, so the examples below show what you would say in Portuguese, with the English meaning.
 
-### Painel na área de trabalho
+Aton is a voice assistant that runs on your own PC: you say **"Aton"** followed by a request. It controls the computer,
+Chrome, music, the WhatsApp desktop app, Bluetooth and windows, reads e-mail, keeps reminders, and has a phone app that
+works from anywhere through a private VPN.
 
-O Aton mostra o que está fazendo num wallpaper animado (feito para o Wallpaper Engine; a interface visual é opcional
-e não faz parte deste repositório):
+![Aton answering, with the question and the answer shown as captions](docs/imagens/wallpaper_conversa.jpg)
 
-![Wallpaper com as partes numeradas](docs/imagens/wallpaper_mapa.jpg)
+### Desktop dashboard
 
-| Nº | Parte | O que mostra |
+Aton shows what it is doing on an animated wallpaper (built for Wallpaper Engine; the visual interface is optional and
+not part of this repository):
+
+![Wallpaper with numbered parts](docs/imagens/wallpaper_mapa.jpg)
+
+| # | Part | What it shows |
 |---|---|---|
-| 1 | Relógio e saudação | Hora, data e "Bom dia / Boa tarde / Boa noite" |
-| 2 | Clima | Temperatura e condição da sua cidade |
-| 3 | Mercado | Dólar, euro e bitcoin, com a variação do dia |
-| 4 | Contagem | Contagem regressiva para uma data |
-| 5 | Núcleo do Aton | Reage ao som do PC e muda quando o Aton está ouvindo, pensando ou falando |
-| 6 | Agenda e lembretes | Cartões que giram sozinhos; dá para concluir pelo botão |
-| 7 | E-mails | Últimos e-mails da caixa de entrada |
-| 8 | Status | Sistema, nível de áudio e estado do núcleo |
-| 9 | Música | O que está tocando, com capa e barras de áudio |
-| 10 | Console | Mensagens do sistema |
+| 1 | Clock and greeting | Time, date and "good morning / afternoon / evening" |
+| 2 | Weather | Temperature and conditions for your city |
+| 3 | Market | Dollar, euro and bitcoin (in Brazilian reais), with the day's change |
+| 4 | Countdown | Countdown to a date |
+| 5 | Aton's core | Reacts to the PC's audio and changes while Aton is listening, thinking or speaking |
+| 6 | Agenda and reminders | Cards that rotate on their own; can be marked as done |
+| 7 | E-mail | Latest inbox messages |
+| 8 | Status | System, audio level and core state |
+| 9 | Music | What is playing, with cover art and audio bars |
+| 10 | Console | System messages |
 
-### App do celular
+### Phone app
 
-Conversa por voz ou texto com o Aton de qualquer lugar, pela VPN privada (Tailscale), vê a tela do PC e abre o
-controle remoto:
+Talk to Aton by voice or text from anywhere through a private VPN (Tailscale), see the PC screen and open remote
+control:
 
-![App do celular: tela inicial e conversa](docs/imagens/celular.jpg)
+![Phone app: home screen and a conversation](docs/imagens/celular.jpg)
 
-*Todas as imagens usam dados de exemplo.*
+*All images use sample data.*
 
-## O que ele faz
+## What it does
 
-- **Voz local**: escuta "Aton" no próprio PC (Whisper, de preferência na placa de vídeo), responde com voz sintética,
-  continua a conversa sem precisar chamar de novo e aprende palavras que ouviu errado ("não, eu falei ...").
-- **Comandos fixos (instantâneos, sem IA)**: volume, música, abrir programas e sites, guias e vídeos do Chrome, teclas,
-  clicar pelo nome em qualquer programa, janelas, Bluetooth, hora e clima.
-- **Seus próprios comandos** (como as Rotinas da Alexa): escritos no arquivo `meus_comandos.txt`.
-- **IA quando não é um comando fixo**: um modelo local (Ollama) e, se você quiser, um modelo na nuvem.
-  O modo **"só comandos"** desliga a IA e deixa tudo previsível.
-- **Chrome** (extensão própria): pausar e avançar vídeos (Netflix, YouTube, HBO Max...), tela cheia, abrir/fechar guias,
-  clicar em links e botões pelo nome, pesquisar no próprio site, ler a página.
-- **WhatsApp do PC**: ler mensagens e enviar — **sempre pedindo confirmação antes de enviar**.
-- **E-mail (Outlook), agenda, lembretes, Spotify, área de transferência, tarefas em segundo plano.**
-- **App do celular** (pasta `pwa/`): conversa por texto e voz, print da tela do PC e controle remoto, pela VPN.
+- **Local voice**: listens for "Aton" on the PC itself (Whisper, preferably on the GPU), answers with a synthetic
+  voice, keeps the conversation going without being called again, and learns words it misheard
+  ("não, eu falei ..." — "no, I said ...").
+- **Built-in commands (instant, no AI)**: volume, music, opening apps and websites, Chrome tabs and videos, keyboard
+  shortcuts, clicking any button by its name in any program, windows, Bluetooth, time and weather.
+- **Your own commands** (like Alexa Routines): written in the `meus_comandos.txt` file.
+- **AI when it is not a built-in command**: a local model (Ollama) and, optionally, a cloud model. The
+  **"só comandos"** ("commands only") mode turns the AI off and keeps everything predictable.
+- **Chrome** (custom extension): pause and skip in videos (Netflix, YouTube, HBO Max...), fullscreen, open/close tabs,
+  click links and buttons by name, search inside the current site, read the page.
+- **WhatsApp desktop**: read and send messages — **it always asks for confirmation before sending**.
+- **E-mail (Outlook), calendar, reminders, Spotify, clipboard, background tasks.**
+- **Phone app** (`pwa/` folder): text and voice chat, PC screenshot and remote control, over the VPN.
 
-A lista completa de comandos é gerada por `gerar_lista.py` (arquivo `LISTA_DE_COMANDOS.html`) ou dizendo
-"Aton, quais comandos você conhece?".
+The full command list is generated by `gerar_lista.py` (`LISTA_DE_COMANDOS.html`) or by saying
+"Aton, quais comandos você conhece?" ("Aton, which commands do you know?").
 
-## Instalação e configuração
+## Installation and setup
 
-Passo a passo completo, inclusive para conectar **o seu e-mail**, **a sua VPN (endereço do PC)**, **a IA local**,
-o Spotify e o celular: **[docs/CONFIGURACAO.md](docs/CONFIGURACAO.md)**.
+Complete step-by-step guide, including how to connect **your e-mail**, **your VPN (the PC's address)**, **the local
+AI**, Spotify and the phone: **[docs/SETUP.md](docs/SETUP.md)**.
 
-Resumo:
-1. Python 3.13 e Git; de preferência uma placa NVIDIA.
-2. `1_instalar.bat` → cria o ambiente, instala tudo e cria o seu `config.json` a partir do `config.exemplo.json`.
-3. Instale o Ollama e baixe um modelo local.
-4. Preencha o seu `config.json` (cidade, microfone e, se for usar, os IDs dos seus apps de e-mail e Spotify).
-5. `2_iniciar.bat` para ligar, `3_parar.bat` para desligar.
+Summary:
+1. Python 3.13 and Git; an NVIDIA GPU is recommended.
+2. `1_instalar.bat` → creates the environment, installs everything and creates your `config.json` from
+   `config.exemplo.json`.
+3. Install Ollama and download a local model.
+4. Fill in your `config.json` (city, microphone and, if you use them, your e-mail and Spotify app IDs).
+5. `2_iniciar.bat` to start, `3_parar.bat` to stop.
 
-## Privacidade
+## Privacy
 
-Nada pessoal fica no repositório. Cada pessoa cria as próprias contas, chaves e configurações, que ficam só no PC dela
-e estão no `.gitignore`: `config.json`, tokens de login, memória, agenda, lembretes, logs, gravações de voz, o detector
-treinado com a voz, o vocabulário aprendido, o `venv` e os modelos.
+Nothing personal is stored in this repository. Everyone creates their own accounts, keys and settings, which stay only
+on their PC and are listed in `.gitignore`: `config.json`, login tokens, memory, calendar, reminders, logs, voice
+recordings, the voice-trained detector, the learned vocabulary, `venv` and the models.
 
-O servidor do app do celular só aceita conexões do próprio PC; o acesso de fora é feito exclusivamente pela VPN
-privada do Tailscale, e toda conversa exige um token gerado no seu PC.
+The phone app's server only accepts connections from the PC itself; outside access happens exclusively through the
+private Tailscale VPN, and every conversation requires a token generated on your PC.
