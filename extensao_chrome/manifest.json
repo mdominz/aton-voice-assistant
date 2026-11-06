@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "Aton - controle por voz",
+  "version": "1.6",
+  "description": "Deixa o assistente Aton (rodando neste PC) controlar abas e vídeos do Chrome por voz. Só conversa com 127.0.0.1.",
+  "permissions": ["tabs", "scripting", "sessions", "alarms"],
+  "host_permissions": ["<all_urls>"],
+  "background": { "service_worker": "background.js" }
+}

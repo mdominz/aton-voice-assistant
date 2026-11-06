@@ -1,0 +1,45 @@
+﻿# ---------- segredos (NUNCA subir) ----------
+aton_token.txt
+spotify_token.json
+outlook_token.json
+*.token
+.env
+
+# ---------- dados pessoais ----------
+memoria.json
+agenda.json
+lembretes.json
+vocabulario_aprendido.json
+volumes_antes_do_aton.json
+apps_instalados.json
+pausado.flag
+amostras_ativacao/
+tarefas/
+claude_workdir/
+tela_de_bloqueio/
+*.log
+*.log.*
+
+# ---------- pesados / gerados de novo na instalação ----------
+venv/
+modelos/
+__pycache__/
+*.pyc
+amostras_voz/
+amostras_sons/
+sons/
+LISTA_DE_COMANDOS.html
+
+# ---------- backups e atalhos locais ----------
+assistente_backup_*.py
+pwa_index_backup_*.html
+*.lnk
+*.tmp
+
+# configuração pessoal (IDs dos seus apps, IP do Tailscale): no repositório vai o config.exemplo.json
+config.json
+
+# só o Aton vai para o GitHub (o wallpaper e o diário de desenvolvimento ficam no PC)
+wallpaper/
+LEIA-ME.txt
+

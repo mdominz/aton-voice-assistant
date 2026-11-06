@@ -1,0 +1,29 @@
+APP DO CELULAR DO ATON (pasta pwa) + VPN PRIVADA (Tailscale)
+
+O servidor do app (aton_remote.py) sobe junto com o Aton e só aceita conexões do próprio PC (127.0.0.1, porta 8766).
+O celular chega até ele pela VPN do Tailscale, onde só os aparelhos da sua conta entram. Nada fica aberto na internet.
+
+NO PC (uma vez)
+1. Instale o Tailscale (tailscale.com/download) e entre na sua conta.
+2. No painel do Tailscale (admin console > DNS), ative "MagicDNS" e "HTTPS Certificates".
+3. Num terminal, uma vez só:   tailscale serve --bg 8766
+   Ele mostra o endereço do PC: https://NOME-DO-PC.SUA-REDE.ts.net
+4. A senha do app fica em aton_token.txt (criado sozinho pelo Aton). Não compartilhe esse arquivo.
+
+NO CELULAR (uma vez)
+1. Instale o Tailscale, entre com a MESMA conta e deixe a VPN ligada.
+2. Abra o endereço do passo 3 no navegador (iPhone: Safari).
+3. Toque em "SISTEMA OFFLINE" (canto superior direito) e cole o conteúdo do aton_token.txt.
+4. Compartilhar > Adicionar à Tela de Início.
+
+CONTROLE REMOTO (botão "CONTROLAR AO VIVO", na tela do print)
+1. No PC, instale o RustDesk; em Configurações > Segurança ative "Acesso direto por IP" e defina uma senha permanente.
+2. No celular, instale o app RustDesk.
+3. O Aton descobre sozinho o endereço do PC na rede do Tailscale (pergunta ao Tailscale) e monta o botão.
+   Nenhum IP fica gravado em arquivo. Sem o Tailscale no PC, o botão não aparece.
+
+PARA ATUALIZAR O APP
+Troque os arquivos da pasta pwa no PC. O celular pega a versão nova ao abrir o app.
+
+SEGURANÇA
+Não abra portas no roteador e não use "tailscale funnel" (publicaria na internet). Toda conversa exige o token.

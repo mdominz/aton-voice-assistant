@@ -1,0 +1,62 @@
+# ============================================================================================
+#  MEUS COMANDOS DO ATON  (comandos pré-programados, como as Rotinas da Alexa)
+# ============================================================================================
+#  Como funciona: diga "Aton, <frase>" e ele faz os passos abaixo, em ordem, sempre do mesmo jeito.
+#  Salve o arquivo e pronto: o Aton relê sozinho (não precisa reiniciar).
+#  Linhas que começam com # são só anotações (o Aton ignora).
+#
+#  MODELO:
+#    [nome do comando]
+#    frases: frase 1; frase 2; frase 3        (o que você vai falar depois de "Aton", separado por ;)
+#    passo
+#    passo
+#
+#  PASSOS QUE VOCÊ PODE USAR:
+#    abrir <programa ou site>       abrir Steam / abrir HBO Max / abrir WhatsApp
+#    site <nome ou endereço>        site g1.globo.com / site kabum
+#    esperar <segundos>             esperar 3
+#    teclas <combinação>            teclas F11 / teclas ctrl+shift+t / teclas windows+d
+#    clicar <texto do botão>        clicar Continuar assistindo     (na janela ou página da frente)
+#    digitar <texto>                digitar bom dia equipe
+#    falar <texto>                  falar Bom filme, senhor.       (se for o 1º passo, vira a resposta)
+#    volume <0 a 100>               volume 40                      (volume geral do PC)
+#    volume <programa> <0 a 100>    volume spotify 30
+#    musica <tocar|pausar|proxima|anterior>
+#    spotify <playlist/artista/música>   spotify Work
+#    pausar_escuta                  o Aton para de escutar (Ctrl+Alt+P ou o botão retoma)
+#    comando <frase>                qualquer comando que o Aton já entende:
+#                                   comando fecha as outras guias / comando tela cheia / comando abre o primeiro vídeo
+#
+#  Ideias para preencher depois: modo trabalho, hora de dormir, modo reunião, modo estudo, abrir meu banco,
+#  ligar a live, preparar o PC para jogar, abrir os sites do trabalho...
+# ============================================================================================
+
+[modo cinema]
+frases: modo cinema; hora do filme; vamos ver um filme
+musica pausar
+abrir HBO Max
+esperar 4
+volume 40
+falar Pronto, senhor. Bom filme.
+
+[hora do jogo]
+frases: hora do jogo; vamos jogar; modo jogo
+falar Preparando tudo para o jogo, senhor.
+musica pausar
+abrir Steam
+esperar 2
+abrir Discord
+
+[modo foco]
+frases: modo foco; hora de focar; preciso me concentrar
+falar Modo foco ativado. Bom trabalho, senhor.
+musica pausar
+teclas windows+d
+
+
+# --- copie o modelo abaixo (tire os #) para criar um novo ---
+# [nome do comando]
+# frases: frase 1; frase 2
+# abrir ...
+# esperar 2
+# falar ...
