@@ -43,3 +43,8 @@ config.json
 wallpaper/
 LEIA-ME.txt
 
+
+# outros dados locais
+monitores.json
+ultima_organizacao.json
+aton.pid

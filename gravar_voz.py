@@ -126,7 +126,7 @@ def main():
     finally:
         print("\n  Religando o Aton...")
         subprocess.run(["schtasks", "/run", "/tn", "AI Core Aton"], capture_output=True)
-    print("\n  Pronto! Pode fechar esta janela e avisar no chat que terminou.")
+    print("\n  Pronto! Agora rode o treinar_aton.bat para treinar o detector com estas gravações.")
     input("  (ENTER para fechar)")
 
 

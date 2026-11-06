@@ -1,0 +1,3 @@
+# Os .bat precisam do fim de linha do Windows (CRLF), senao o "goto" do cmd pode falhar
+*.bat text eol=crlf
+*.cmd text eol=crlf

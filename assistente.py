@@ -39,10 +39,18 @@ CFG = {
     "max_segundos": 15,
 }
 try:
-    with open(os.path.join(HERE, "config.json"), encoding="utf-8") as f:
+    # utf-8-sig: aceita o config.json salvo pelo Bloco de Notas com "BOM"
+    with open(os.path.join(HERE, "config.json"), encoding="utf-8-sig") as f:
         CFG.update(json.load(f))
 except FileNotFoundError:
     pass
+except ValueError as e:                   # vírgula ou aspas faltando: mensagem clara em vez de um erro genérico
+    msg = f"O config.json tem um erro de digitação (linha {getattr(e, 'lineno', '?')}): {e}. Corrija e inicie de novo."
+    try:
+        import ctypes; ctypes.windll.user32.MessageBoxW(None, msg, "Aton", 0x10)
+    except Exception:
+        pass
+    sys.exit(msg)
 ARGS = sys.argv[1:]
 DEMO = "--demo" in ARGS
 def _arg(name):
@@ -284,6 +292,7 @@ def mic_device():
     """Índice do microfone escolhido. Com "microfone_obrigatorio", não usa outro se ele sumir."""
     want = CFG.get("microfone")
     if want is None or isinstance(want, int): return want
+    if not str(want).strip(): return None             # vazio = microfone padrão do Windows
     reserva = CFG.get("microfone_reserva")
     if reserva:                                   # ex.: microfone virtual de um filtro fechado -> o microfone físico
         for nome in (want, reserva):
@@ -629,6 +638,11 @@ def _para_voz(texto):
 def _sintetizar(texto):
     texto = _para_voz(texto)
     path = os.path.join(tempfile.gettempdir(), f"aton_fala_{next(_N_FALA)}.mp3")
+    # respostas sobre e-mail/WhatsApp: com "voz_offline_privado", fala com a voz do Windows (sem internet), para o
+    # conteúdo não ir ao serviço online de voz
+    if CFG.get("voz_offline_privado", False) and getattr(globals().get("CER"), "privado", False):
+        path = path[:-4] + ".wav"; _tts_offline(texto, path)
+        return _com_efeito(path)
     try:
         asyncio.run(edge_tts.Communicate(texto, CFG["voz"], rate=CFG["velocidade_voz"], pitch=CFG.get("tom_voz", "+0Hz")).save(path))
     except Exception as e:
@@ -1046,6 +1060,7 @@ def vigia_saida():
     """O Wallpaper Engine não acompanha a troca da saída de som (ex.: para o fone Bluetooth) e as ondas param.
     Quando a saída padrão muda, para e retoma o wallpaper, o que faz ele voltar a ouvir a música."""
     exe = CFG.get("wallpaper_exe") or r"C:\Program Files (x86)\Steam\steamapps\common\wallpaper_engine\wallpaper64.exe"
+    if not CFG.get("reiniciar_wallpaper", True): return      # só faz sentido com o wallpaper do Aton
     ultima = saida_atual()
     while True:
         time.sleep(3)

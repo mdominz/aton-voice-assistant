@@ -65,12 +65,13 @@ Complete step-by-step guide, including how to connect **your e-mail**, **your VP
 AI**, Spotify and the phone: **[docs/SETUP.md](docs/SETUP.md)**.
 
 Summary:
-1. Python 3.13 and Git; an NVIDIA GPU is recommended.
-2. `1_instalar.bat` → creates the environment, installs everything and creates your `config.json` from
-   `config.exemplo.json`.
-3. Install Ollama and download a local model.
-4. Fill in your `config.json` (city, microphone and, if you use them, your e-mail and Spotify app IDs).
-5. `2_iniciar.bat` to start, `3_parar.bat` to stop.
+1. Windows 10/11, **Python 3.13** (not 3.14) and the Visual C++ Redistributable; an NVIDIA GPU is recommended.
+2. `1_instalar.bat` → creates the environment, installs everything (about 2.5 GB, 5–15 minutes) and creates your
+   `config.json` from `config.exemplo.json`.
+3. `teste_sem_microfone.bat` → quick test without a microphone.
+4. Install Ollama and download a local model (`ollama pull qwen3.5:4b`).
+5. Fill in your `config.json` (city, microphone and, if you use them, your e-mail and Spotify app IDs).
+6. `2_iniciar.bat` to start, `3_parar.bat` to stop.
 
 ## Privacy
 
@@ -78,5 +79,13 @@ Nothing personal is stored in this repository. Everyone creates their own accoun
 on their PC and are listed in `.gitignore`: `config.json`, login tokens, memory, calendar, reminders, logs, voice
 recordings, the voice-trained detector, the learned vocabulary, `venv` and the models.
 
+With the example settings the AI runs only on your PC (`"rota": "local"`) and speech recognition is always local.
+The spoken voice uses Microsoft's online text-to-speech (edge-tts); e-mail and WhatsApp content is spoken with the
+offline Windows voice instead, so it never leaves the PC.
+
 The phone app's server only accepts connections from the PC itself; outside access happens exclusively through the
 private Tailscale VPN, and every conversation requires a token generated on your PC.
+
+## License
+
+[MIT](LICENSE) — free to use, modify and share, keeping the copyright notice.

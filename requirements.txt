@@ -7,13 +7,12 @@ pygame-ce
 ddgs
 faster-whisper
 av<17  # av 19 quebra o faster-whisper 1.2 (metadata_errors)
-onnxruntime-gpu==1.23.2   # NÃO instale o "onnxruntime" comum junto: os dois brigam (ver 1_instalar.bat)
+onnxruntime            # só a versão comum (CPU): o Whisper usa a placa de vídeo pelo CTranslate2, não pelo onnxruntime
 winrt-Windows.Media.Control
 winrt-Windows.Foundation
 winrt-Windows.Devices.Radios   # ligar/desligar o Bluetooth
-nvidia-cublas-cu12      # Whisper na placa de vídeo (opcional)
+nvidia-cublas-cu12      # Whisper na placa de vídeo NVIDIA (sem NVIDIA ele usa o processador)
 nvidia-cudnn-cu12>=9,<10
-kokoro-onnx            # vozes locais (amostras); o Aton usa o edge-tts
 soundfile
 pypdf
 psutil
@@ -22,9 +21,9 @@ pycaw                  # volume por programa, saída de som
 comtypes
 Pillow                 # prints da tela
 scikit-learn           # detector do "Aton" com a sua voz
+openwakeword           # base do detector do "Aton" com a sua voz
 tqdm
 scipy
 requests
-mcp                    # servidor MCP (aton_mcp.py)
+mcp                    # servidor MCP opcional (aton_mcp.py)
 # app do celular: requirements_celular.txt (fastapi, uvicorn)
-# openwakeword: instalado SEM dependências pelo 1_instalar.bat (ele puxaria o onnxruntime comum)

@@ -61,11 +61,13 @@ Passo a passo completo, inclusive para conectar **o seu e-mail**, **a sua VPN (e
 o Spotify e o celular: **[docs/CONFIGURACAO.md](docs/CONFIGURACAO.md)**.
 
 Resumo:
-1. Python 3.13 e Git; de preferência uma placa NVIDIA.
-2. `1_instalar.bat` → cria o ambiente, instala tudo e cria o seu `config.json` a partir do `config.exemplo.json`.
-3. Instale o Ollama e baixe um modelo local.
-4. Preencha o seu `config.json` (cidade, microfone e, se for usar, os IDs dos seus apps de e-mail e Spotify).
-5. `2_iniciar.bat` para ligar, `3_parar.bat` para desligar.
+1. Windows 10/11, **Python 3.13** (não o 3.14) e o Visual C++ Redistributable; de preferência uma placa NVIDIA.
+2. `1_instalar.bat` → cria o ambiente, instala tudo (cerca de 2,5 GB, 5 a 15 minutos) e cria o seu `config.json` a
+   partir do `config.exemplo.json`.
+3. `teste_sem_microfone.bat` → teste rápido sem microfone.
+4. Instale o Ollama e baixe um modelo local (`ollama pull qwen3.5:4b`).
+5. Preencha o seu `config.json` (cidade, microfone e, se for usar, os IDs dos seus apps de e-mail e Spotify).
+6. `2_iniciar.bat` para ligar, `3_parar.bat` para desligar.
 
 ## Privacidade
 
@@ -73,5 +75,13 @@ Nada pessoal fica no repositório. Cada pessoa cria as próprias contas, chaves 
 e estão no `.gitignore`: `config.json`, tokens de login, memória, agenda, lembretes, logs, gravações de voz, o detector
 treinado com a voz, o vocabulário aprendido, o `venv` e os modelos.
 
+Com as configurações de exemplo a IA roda só no seu PC (`"rota": "local"`) e o reconhecimento de voz é sempre local.
+A voz falada usa o serviço online da Microsoft (edge-tts); conteúdo de e-mail e WhatsApp é falado com a voz offline do
+Windows, então nunca sai do PC.
+
 O servidor do app do celular só aceita conexões do próprio PC; o acesso de fora é feito exclusivamente pela VPN
 privada do Tailscale, e toda conversa exige um token gerado no seu PC.
+
+## Licença
+
+[MIT](LICENSE) — livre para usar, modificar e compartilhar, mantendo o aviso de direitos autorais.
