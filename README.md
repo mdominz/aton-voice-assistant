@@ -4,6 +4,37 @@ Assistente de voz em português que roda no seu PC: você diz **"Aton"** e o ped
 a música, o WhatsApp do PC, o Bluetooth e as janelas, lê e-mails, guarda lembretes e tem um app de celular que funciona
 de qualquer lugar por uma VPN privada.
 
+![O Aton respondendo, com a pergunta e a resposta em legenda](docs/imagens/wallpaper_conversa.jpg)
+
+### Painel na área de trabalho
+
+O Aton mostra o que está fazendo num wallpaper animado (feito para o Wallpaper Engine; a interface visual é opcional
+e não faz parte deste repositório):
+
+![Wallpaper com as partes numeradas](docs/imagens/wallpaper_mapa.jpg)
+
+| Nº | Parte | O que mostra |
+|---|---|---|
+| 1 | Relógio e saudação | Hora, data e "Bom dia / Boa tarde / Boa noite" |
+| 2 | Clima | Temperatura e condição da sua cidade |
+| 3 | Mercado | Dólar, euro e bitcoin, com a variação do dia |
+| 4 | Contagem | Contagem regressiva para uma data |
+| 5 | Núcleo do Aton | Reage ao som do PC e muda quando o Aton está ouvindo, pensando ou falando |
+| 6 | Agenda e lembretes | Cartões que giram sozinhos; dá para concluir pelo botão |
+| 7 | E-mails | Últimos e-mails da caixa de entrada |
+| 8 | Status | Sistema, nível de áudio e estado do núcleo |
+| 9 | Música | O que está tocando, com capa e barras de áudio |
+| 10 | Console | Mensagens do sistema |
+
+### App do celular
+
+Conversa por voz ou texto com o Aton de qualquer lugar, pela VPN privada (Tailscale), vê a tela do PC e abre o
+controle remoto:
+
+![App do celular: tela inicial e conversa](docs/imagens/celular.jpg)
+
+*Todas as imagens usam dados de exemplo.*
+
 ## O que ele faz
 
 - **Voz local**: escuta "Aton" no próprio PC (Whisper, de preferência na placa de vídeo), responde com voz sintética,
@@ -19,9 +50,7 @@ de qualquer lugar por uma VPN privada.
 - **E-mail (Outlook), agenda, lembretes, Spotify, área de transferência, tarefas em segundo plano.**
 - **App do celular** (pasta `pwa/`): conversa por texto e voz, print da tela do PC e controle remoto, pela VPN.
 
-![Lista de comandos do Aton](docs/imagens/lista_de_comandos.jpg)
-
-A lista completa é gerada por `gerar_lista.py` (arquivo `LISTA_DE_COMANDOS.html`) ou dizendo
+A lista completa de comandos é gerada por `gerar_lista.py` (arquivo `LISTA_DE_COMANDOS.html`) ou dizendo
 "Aton, quais comandos você conhece?".
 
 ## Instalação e configuração
