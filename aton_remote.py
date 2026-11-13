@@ -60,7 +60,9 @@ def guardar_audio(dados: bytes, mime: str) -> str:
 async def gerar_resposta(texto: str) -> dict:
     resposta = await aton_processar(texto)
     tts = await aton_tts(resposta)
-    return {"texto": resposta, "audio_url": guardar_audio(*tts) if tts else None}
+    midia = (HOOKS["imagens"]() if "imagens" in HOOKS else None) or {}
+    return {"texto": resposta, "audio_url": guardar_audio(*tts) if tts else None, "imagens": midia.get("imagens", []),
+            "video": midia.get("video"), "links": midia.get("links", [])}
 
 async def avisar_todos(evento: dict):
     """Chame de qualquer parte do Aton para falar com o celular."""
@@ -123,6 +125,58 @@ async def ws_aton(ws: WebSocket):
     finally:
         clientes.discard(ws)
 
+# ---------- tela de configurações e notificações push (painel_config.py); tudo exige o token ----------
+import painel_config
+
+def _exigir(token: str):
+    if not secrets.compare_digest(token or "", TOKEN): raise HTTPException(401, "Token inválido")
+
+class Ajustes(BaseModel):
+    valores: dict
+
+@app.get("/api/config")
+async def cfg_ler(x_aton_token: str = Header(default="")):
+    _exigir(x_aton_token)
+    return await asyncio.to_thread(painel_config.estado)
+
+@app.post("/api/config")
+async def cfg_salvar(a: Ajustes, x_aton_token: str = Header(default="")):
+    _exigir(x_aton_token)
+    try: return await asyncio.to_thread(painel_config.salvar, a.valores, HOOKS.get("aplicar_config"))
+    except ValueError as e: raise HTTPException(400, str(e))
+
+@app.post("/api/reiniciar")
+async def cfg_reiniciar(x_aton_token: str = Header(default="")):
+    _exigir(x_aton_token)
+    painel_config.reiniciar_aton()
+    return {"ok": True}
+
+class Recado(BaseModel):
+    recado: dict
+
+@app.post("/api/painel")
+async def painel_recado(r: Recado, x_aton_token: str = Header(default="")):
+    """Manda um recado ao painel do wallpaper (para testes e diagnóstico)."""
+    _exigir(x_aton_token)
+    if "painel" in HOOKS: HOOKS["painel"](r.recado)
+    return {"ok": "painel" in HOOKS}
+
+@app.get("/api/push/chave")
+async def push_chave(x_aton_token: str = Header(default="")):
+    _exigir(x_aton_token)
+    return {"chave": await asyncio.to_thread(painel_config.chave_publica)}
+
+class Inscricao(BaseModel):
+    inscricao: dict
+
+@app.post("/api/push/inscrever")
+async def push_inscrever(i: Inscricao, x_aton_token: str = Header(default="")):
+    _exigir(x_aton_token)
+    try: n = await asyncio.to_thread(painel_config.inscrever, i.inscricao)
+    except ValueError as e: raise HTTPException(400, str(e))
+    await asyncio.to_thread(painel_config.enviar_push, "Notificações do Aton ativadas neste aparelho.")
+    return {"aparelhos": n}
+
 # o app do celular (PWA) é servido pelo próprio Aton, no mesmo endereço do Tailscale
 PASTA_PWA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pwa")
 
@@ -177,6 +231,8 @@ def notificar(texto: str):
     """Para as threads do Aton (fora do loop do servidor): manda uma notificação ao celular, se houver um conectado."""
     if LOOP and clientes:
         asyncio.run_coroutine_threadsafe(avisar_todos({"tipo": "notificacao", "texto": texto}), LOOP)
+    import threading                       # push: chega mesmo com o app fechado (se o celular ativou as notificações)
+    threading.Thread(target=painel_config.enviar_push, args=(texto,), daemon=True).start()
 
 def iniciar(porta: int = PORTA):
     uvicorn.run(app, host="127.0.0.1", port=porta, log_level="warning")   # só local: o acesso de fora vem pelo Tailscale

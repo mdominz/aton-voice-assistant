@@ -40,7 +40,7 @@ volume 40
 falar Pronto, senhor. Bom filme.
 
 [hora do jogo]
-frases: hora do jogo; vamos jogar; modo jogo
+frases: hora do jogo; vamos jogar
 falar Preparando tudo para o jogo, senhor.
 musica pausar
 abrir Steam

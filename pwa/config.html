@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#02040a">
+<title>Configurações do Aton</title>
+<style>
+:root{--fundo:#02040a;--cartao:#0a1020;--linha:#1b2944;--texto:#e4ecfa;--suave:#8fa3c4;--azul:#3fa9ff;--azul-claro:#9fd4ff;--verde:#4fe3a1;--erro:#ff6b6b;
+  --mono:ui-monospace,"SF Mono",Consolas,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--fundo);color:var(--texto);font:15px/1.45 -apple-system,"Segoe UI",system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 20px) 16px 120px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
+h1{font-size:22px;font-weight:200;letter-spacing:6px;margin:0}
+header a{color:var(--azul);font:12px var(--mono);text-decoration:none}
+.sub{color:var(--suave);font-size:13px;margin:0 0 18px}
+section{background:var(--cartao);border:1px solid var(--linha);border-radius:14px;padding:4px 16px;margin:0 0 14px}
+h2{font:11px var(--mono);letter-spacing:2px;text-transform:uppercase;color:var(--azul);margin:14px 0 4px}
+.campo{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid var(--linha)}
+.campo:first-of-type{border-top:0}
+.campo label{flex:1;min-width:0}
+.campo small{display:block;color:var(--suave);font-size:12px;margin-top:2px}
+.campo .tag{font:10px var(--mono);color:var(--azul-claro);border:1px solid var(--linha);border-radius:6px;padding:1px 5px;margin-left:6px;white-space:nowrap}
+input[type=text],input[type=number],input[type=password],select{background:#060b18;color:var(--texto);border:1px solid var(--linha);border-radius:9px;
+  padding:9px 10px;font:inherit;width:190px;max-width:46vw}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--azul);outline-offset:2px}
+.chave{position:relative;width:48px;height:28px;flex:none}
+.chave input{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.chave span{position:absolute;inset:0;border-radius:14px;background:#1a2438;border:1px solid var(--linha);transition:background .2s}
+.chave span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--suave);transition:transform .2s,background .2s}
+.chave input:checked + span{background:rgba(63,169,255,.25);border-color:var(--azul)}
+.chave input:checked + span::after{transform:translateX(20px);background:var(--azul-claro)}
+.chave input:focus-visible + span{outline:2px solid var(--azul);outline-offset:2px}
+.barra{position:fixed;left:0;right:0;bottom:0;background:rgba(2,4,10,.94);border-top:1px solid var(--linha);
+  padding:12px 16px calc(env(safe-area-inset-bottom) + 12px)}
+.barra div{max-width:720px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.barra p{flex:1;margin:0;font-size:13px;color:var(--suave);min-width:0}
+.barra p.ok{color:var(--verde)} .barra p.erro{color:var(--erro)}
+button{font:inherit;border-radius:10px;padding:10px 16px;cursor:pointer;border:1px solid var(--azul);background:var(--azul);color:#02101f;font-weight:600}
+button.sec{background:transparent;color:var(--azul-claro);font-weight:400}
+button:disabled{opacity:.45;cursor:default}
+#entrada{background:var(--cartao);border:1px solid var(--linha);border-radius:14px;padding:16px;display:none}
+#entrada input{width:100%;max-width:none;margin:8px 0 12px}
+@media (max-width:480px){.barra div{flex-wrap:wrap}.barra p{flex-basis:100%}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <header><h1>ATON</h1><a href="./">‹ voltar ao app</a></header>
+  <p class="sub">Configurações. O que muda vale na hora; os itens marcados com “reinicia” só valem depois de reiniciar o Aton.</p>
+  <form id="entrada">
+    <label for="tk">Token do Aton (arquivo <code>aton_token.txt</code> na pasta do Aton, no PC)</label>
+    <input id="tk" type="password" autocomplete="off" autocapitalize="none">
+    <button type="submit">Entrar</button>
+  </form>
+  <div id="grupos"></div>
+</main>
+<div class="barra"><div>
+  <p id="msg" role="status">Carregando…</p>
+  <button class="sec" id="btnReiniciar" type="button" disabled>Reiniciar o Aton</button>
+  <button id="btnSalvar" type="button" disabled>Salvar</button>
+</div></div>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+let token = '', campos = [], originais = {};
+// o comando de voz "abre as configurações" abre esta página com o token depois do # (não vai para o servidor nem fica na barra)
+if (location.hash.startsWith('#t=')) { token = decodeURIComponent(location.hash.slice(3)); history.replaceState(null, '', location.pathname);
+  try { sessionStorage.setItem('aton_tk', token); } catch (e) {} }
+if (!token) { try { token = sessionStorage.getItem('aton_tk') || (JSON.parse(localStorage.getItem('aton_cfg') || '{}').token) || ''; } catch (e) {} }
+
+function msg(t, tipo){ $('msg').textContent = t; $('msg').className = tipo || ''; }
+async function api(caminho, corpo){
+  const r = await fetch(caminho, {method: corpo ? 'POST' : 'GET', cache: 'no-store',
+    headers: Object.assign({'x-aton-token': token}, corpo ? {'Content-Type': 'application/json'} : {}), body: corpo ? JSON.stringify(corpo) : undefined});
+  if (r.status === 401) throw new Error('token');
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.detail || 'O Aton recusou o pedido.');
+  return j;
+}
+function valor(c){
+  const el = $('c_' + c.chave);
+  if (c.tipo === 'sim_nao') return el.checked;
+  if (c.tipo === 'numero') return el.value === '' ? null : Number(el.value.replace(',', '.'));
+  return el.value;
+}
+function mudancas(){
+  const m = {};
+  for (const c of campos) { const v = valor(c); if (v !== originais[c.chave] && !(v === null)) m[c.chave] = v; }
+  return m;
+}
+function atualizarBotao(){ $('btnSalvar').disabled = !Object.keys(mudancas()).length; }
+
+function desenhar(d){
+  campos = d.campos; originais = {};
+  const box = $('grupos'); box.textContent = '';
+  const grupos = {};
+  for (const c of campos) (grupos[c.grupo] = grupos[c.grupo] || []).push(c);
+  for (const g in grupos) {
+    const sec = document.createElement('section'), h = document.createElement('h2'); h.textContent = g; sec.appendChild(h);
+    for (const c of grupos[g]) {
+      const v = d.valores[c.chave]; originais[c.chave] = v === undefined ? null : v;
+      const linha = document.createElement('div'); linha.className = 'campo';
+      const lab = document.createElement('label'); lab.htmlFor = 'c_' + c.chave; lab.textContent = c.rotulo;
+      if (c.reinicia) { const t = document.createElement('span'); t.className = 'tag'; t.textContent = 'reinicia'; lab.appendChild(t); }
+      if (c.ajuda) { const s = document.createElement('small'); s.textContent = c.ajuda; lab.appendChild(s); }
+      linha.appendChild(lab);
+      let el;
+      if (c.tipo === 'sim_nao') {
+        const w = document.createElement('span'); w.className = 'chave';
+        el = document.createElement('input'); el.type = 'checkbox'; el.checked = !!v; w.appendChild(el); w.appendChild(document.createElement('span')); linha.appendChild(w);
+      } else if (c.tipo === 'perfil_chrome') {
+        el = document.createElement('select');
+        const ps = [{pasta: '', nome: 'Último perfil usado'}].concat(d.perfis_chrome || []);
+        const rep = n => ps.filter(p => p.nome.toLowerCase() === n.toLowerCase()).length > 1;
+        for (const p of ps) { const op = document.createElement('option'); op.value = p.pasta;
+          op.textContent = p.pasta && rep(p.nome) ? p.nome + ' (' + (p.pasta === 'Default' ? 'primeiro' : p.pasta) + ')' : p.nome; el.appendChild(op); }
+        el.value = v || ''; originais[c.chave] = el.value; linha.appendChild(el);
+      } else if (c.tipo === 'lista' || c.tipo === 'microfone') {
+        el = document.createElement('select');
+        let ops = c.tipo === 'lista' ? c.opcoes : [''].concat(d.microfones);
+        if (c.tipo === 'microfone' && v && !ops.some(o => o.toLowerCase().includes(String(v).toLowerCase()))) ops = ops.concat([v]);
+        for (const o of ops) { const op = document.createElement('option'); op.value = o;
+          op.textContent = o === '' ? (c.tipo === 'microfone' ? 'Padrão do Windows' : 'Nenhum') : o; el.appendChild(op); }
+        // o config guarda só um trecho do nome do microfone: seleciona o aparelho que contém esse trecho
+        const achou = c.tipo === 'microfone' && v ? ops.find(o => o && o.toLowerCase().includes(String(v).toLowerCase())) : v;
+        el.value = achou == null ? '' : achou; originais[c.chave] = el.value;
+        linha.appendChild(el);
+      } else {
+        el = document.createElement('input'); el.type = c.tipo === 'numero' ? 'number' : 'text';
+        if (c.tipo === 'numero') { el.step = 'any'; if (c.min != null) el.min = c.min; if (c.max != null) el.max = c.max; el.inputMode = 'decimal'; }
+        el.value = v == null ? '' : v; linha.appendChild(el);
+      }
+      el.id = 'c_' + c.chave; el.addEventListener('input', atualizarBotao); el.addEventListener('change', atualizarBotao);
+      sec.appendChild(linha);
+    }
+    box.appendChild(sec);
+  }
+  $('btnReiniciar').disabled = false; atualizarBotao();
+}
+async function carregar(){
+  if (!token) { $('entrada').style.display = 'block'; msg('Informe o token para abrir as configurações.'); return; }
+  try { desenhar(await api('/api/config')); $('entrada').style.display = 'none'; msg('Pronto.'); }
+  catch (e) {
+    if (e.message === 'token') { token = ''; $('entrada').style.display = 'block'; msg('Token recusado.', 'erro'); }
+    else msg('Não consegui falar com o Aton. Ele está ligado?', 'erro');
+  }
+}
+$('entrada').onsubmit = e => { e.preventDefault(); token = $('tk').value.trim(); try { sessionStorage.setItem('aton_tk', token); } catch (err) {} carregar(); };
+$('btnSalvar').onclick = async () => {
+  const m = mudancas(); if (!Object.keys(m).length) return;
+  $('btnSalvar').disabled = true; msg('Salvando…');
+  try {
+    const r = await api('/api/config', {valores: m});
+    desenhar(await api('/api/config'));
+    msg(r.reiniciar ? 'Salvo. Reinicie o Aton para valer tudo.' : 'Salvo. Já está valendo.', 'ok');
+  } catch (e) { msg(e.message === 'token' ? 'Token recusado.' : e.message, 'erro'); atualizarBotao(); }
+};
+$('btnReiniciar').onclick = async () => {
+  if (!confirm('Reiniciar o Aton agora? Ele fica uns 40 segundos fora do ar.')) return;
+  try { await api('/api/reiniciar', {}); msg('Reiniciando… esta página volta sozinha.', 'ok'); $('btnReiniciar').disabled = true;
+    let n = 0; const t = setInterval(async () => { n++; try { desenhar(await api('/api/config')); clearInterval(t); msg('O Aton voltou.', 'ok'); } catch (e) { if (n > 40) { clearInterval(t); msg('O Aton ainda não voltou. Confira no PC.', 'erro'); } } }, 3000);
+  } catch (e) { msg('Não consegui reiniciar.', 'erro'); }
+};
+carregar();
+})();
+</script>
+</body>
+</html>

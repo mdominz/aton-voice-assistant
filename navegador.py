@@ -43,7 +43,8 @@ def _fmt_tempo(s):
     s = int(s or 0)
     return f"{s // 3600}:{s % 3600 // 60:02d}:{s % 60:02d}" if s >= 3600 else f"{s // 60}:{s % 60:02d}"
 
-SEM_EXT = ("Para isso preciso da extensão do Aton no Chrome (pasta extensao_chrome; o passo a passo está no LEIA-ME).")
+SEM_EXT = ("Não consegui falar com o Chrome: ele está fechado ou a extensão do Aton está desligada nele. Diga isso ao usuário "
+           "e ofereça abrir o Chrome (abrir_programa chrome).")
 
 def chrome(acao, busca="", url="", valor=None):
     """Executa e devolve uma frase curta para ser falada (ou dados para a IA, em abas/ler_pagina)."""
@@ -89,6 +90,17 @@ def chrome(acao, busca="", url="", valor=None):
             j = extras._achar("chrome")
             if j: extras._focar(j[0])
             time.sleep(0.35); keyboard.send("f"); return "Tela cheia."
+        if acao == "picture_in_picture":
+            import keyboard
+            _pedir("pip_armar")
+            antes = _pedir("pip_estado")           # já estava flutuando? então o pedido tira da janela
+            j = extras._achar("chrome")
+            if j: extras._focar(j[0])
+            time.sleep(0.35); keyboard.send("f9"); time.sleep(0.8)
+            depois = _pedir("pip_estado")
+            if depois and not antes: return "Vídeo na janela flutuante."
+            if antes and not depois: return "Tirei o vídeo da janela flutuante; ele voltou para a página."
+            return "Não consegui mudar a janela flutuante do vídeo."
         if acao == "abrir":
             u = url or busca
             if not re.match(r"^[a-z]+://", u): u = "https://" + u if "." in u else "https://www.google.com/search?q=" + u
@@ -311,14 +323,14 @@ ESQUEMA_WPP = {"type": "function", "function": {"name": "whatsapp", "description
 ESQUEMA = {"type": "function", "function": {"name": "chrome", "description": (
     "Controla o Google Chrome do usuário: vídeos/filmes/séries em qualquer site (YouTube, Netflix, Prime, Disney...): pausar, tocar, "
     "avancar_tempo/voltar_tempo (valor = segundos), ir_para_tempo (valor = segundo), mudo, som, volume_video (valor 0-100), velocidade "
-    "(valor ex.: 1.5), quanto_falta, pular_anuncio, pular_abertura, proximo_video (próximo episódio), tela_cheia; guias/abas: abrir (url ou "
+    "(valor ex.: 1.5), quanto_falta, pular_anuncio, pular_abertura, proximo_video (próximo episódio), tela_cheia, picture_in_picture (põe o vídeo aberto numa janela flutuante por cima de tudo; de novo = volta; precisa de um vídeo na página); guias/abas: abrir (url ou "
     "busca), fechar (busca = parte do título/site; vazio = a guia atual), fechar_outras, ir (busca), nova_aba, reabrir (a última fechada), "
     "proxima_aba, aba_anterior, recarregar, voltar, avancar, rolar_baixo, rolar_cima, topo, fim, abas (lista as guias); ler_pagina (texto "
     "da guia aberta, para resumir/explicar/responder sobre ela)."),
     "parameters": {"type": "object", "properties": {
         "acao": {"type": "string", "enum": ["pausar", "tocar", "alternar", "avancar_tempo", "voltar_tempo", "ir_para_tempo", "mudo", "som",
                                             "volume_video", "velocidade", "quanto_falta", "pular_anuncio", "pular_abertura", "proximo_video",
-                                            "tela_cheia", "abrir", "fechar", "fechar_outras", "ir", "nova_aba", "reabrir", "proxima_aba",
+                                            "tela_cheia", "picture_in_picture", "abrir", "fechar", "fechar_outras", "ir", "nova_aba", "reabrir", "proxima_aba",
                                             "aba_anterior", "recarregar", "voltar", "avancar", "rolar_baixo", "rolar_cima", "topo", "fim",
                                             "abas", "ler_pagina"]},
         "busca": {"type": "string"}, "url": {"type": "string"}, "valor": {"type": "number"}}, "required": ["acao"]}}}

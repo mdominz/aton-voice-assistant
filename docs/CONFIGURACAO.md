@@ -225,8 +225,41 @@ claude mcp add aton -- "<pasta do Aton>\venv\Scripts\python.exe" "<pasta do Aton
 | `A porta ... já está em uso` | Já existe outra cópia do Aton ligada. |
 | `Ignorado: "..."` | Ouviu uma fala que não era a palavra de ativação (só com `log_ativacao`). |
 
+## 17. Tela de configurações
+
+Em vez de editar o `config.json`, diga **"Aton, abre as configurações"** (ou abra `http://127.0.0.1:8766/config.html` no
+PC). No celular, toque no status no alto do app → **Configurações do Aton**. A tela pede o token do `aton_token.txt`,
+só mostra as opções do dia a dia (nunca chaves ou IDs) e tem o botão **Reiniciar o Aton** para o que só vale depois de
+reiniciar.
+
+## 18. Notificações no celular
+
+No app do celular, toque no status no alto → **Notificações → Ativar**. O Aton passa a avisar de lembretes e de tarefas
+longas concluídas, mesmo com o app fechado. No iPhone é preciso o iOS 16.4 ou mais novo e abrir o app pelo ícone da
+Tela de Início. O texto do aviso viaja cifrado até o aparelho; o serviço de entrega da Apple/Google não consegue ler.
+A chave fica só no seu PC (`vapid_private.pem`). Desligue com `"notificacoes_celular": false`.
+
+## 19. Imagens nas respostas
+
+Quando o Aton pesquisa na internet, ele também mostra até 3 fotos do assunto: numa janela flutuante do painel e no app
+do celular. Também funciona por comando: "Aton, mostra imagens de aurora boreal". As fotos vêm do buscador (DuckDuckGo,
+com o filtro de conteúdo adulto ligado). Desligue com `"imagens_na_pesquisa": false`.
+
+## 20. Modos e recursos de tela
+
+- **Modo pesquisa** ("Aton, modo pesquisa" / "fecha a pesquisa"): tela cheia com as últimas notícias. Clique numa
+  notícia (ou "abre a segunda notícia") para ler na própria tela; "resume essa notícia" responde em cima do texto.
+  Perguntas mostram resposta, fotos, vídeos e links; "toca o segundo vídeo" toca dentro do painel; "voltar" volta às
+  notícias; "abre o histórico" mostra as conversas anteriores. A caixa de busca abre uma janelinha para digitar.
+- **Modo jogo** ("Aton, modo jogo" ou **Ctrl+Win+P**): pausa a escuta e apaga o painel até o próximo Ctrl+Win+P.
+- **Resumo do dia** ("bom dia"): também sai sozinho na primeira saudação da manhã (`"resumo_matinal": false` desliga).
+- **Modo agente** ("modo agente: <tarefa>"): usa o Claude a cada passo (gasta tokens). Para com **Ctrl+Alt+P**.
+  Nunca digita senhas nem faz pagamentos; botões de comprar/enviar/excluir pedem o seu "sim".
+- **Vídeo dentro do painel** usa a biblioteca `yt-dlp`; se um vídeo não tocar, ele abre no navegador.
+- **Perfil do Chrome**: em `"chrome_perfil"` (ou na tela de configurações) escolha em qual perfil o Aton abre os sites.
+
 ## O que nunca vai para o GitHub
 
 `config.json`, `aton_token.txt`, `outlook_token.json`, `spotify_token.json`, `memoria.json`, `agenda.json`,
 `lembretes.json`, `monitores.json`, `ultima_organizacao.json`, logs, `amostras_ativacao/`,
-`vocabulario_aprendido.json`, `venv/` e `modelos/` — veja o `.gitignore`.
+`vocabulario_aprendido.json`, `vapid_private.pem`, `push_inscricoes.json`, `historico.jsonl`, `uso_claude.json`, `venv/` e `modelos/` — veja o `.gitignore`.

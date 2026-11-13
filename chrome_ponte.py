@@ -47,6 +47,7 @@ async def _atualizar_se_velha():
         man = os.path.join(os.path.dirname(os.path.abspath(__file__)), "extensao_chrome", "manifest.json")
         na_pasta = json.load(open(man, encoding="utf-8"))["version"]
         no_chrome = await _pedir("versao", {}, 5)
+        log.info("Extensão do Chrome: versão %s (pasta: %s).", no_chrome, na_pasta)
         if no_chrome != na_pasta:
             log.info("Extensão do Chrome %s -> %s: recarregando.", no_chrome, na_pasta)
             await _pedir("recarregar_extensao", {}, 5)

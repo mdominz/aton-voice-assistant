@@ -370,7 +370,8 @@ def abrir(cfg, alvo):
             return f"Abrindo {app['nome']}.", lambda a=app: extras.abrir_app(a)
         return abrir_site(cfg, alvo)   # um site conhecido, ou None: deixa a IA responder
     try:
-        os.startfile(os.path.expandvars(apps[nome]))
+        if str(apps[nome]).lower() in ("chrome", "chrome.exe") and abrir_no_chrome(cfg): pass      # no perfil escolhido
+        else: os.startfile(os.path.expandvars(apps[nome]))
         return f"Abrindo {nome}.", None
     except OSError as e:
         log.warning("Falha ao abrir %s: %r", nome, e)
@@ -461,6 +462,24 @@ REGRAS = [   # a ordem importa: a primeira regra que casar responde
      lambda c, m: _janela_regra("fechar_tudo_menos" if m.group("v").startswith("fech") else "minimizar_tudo_menos", m.group("n")), "comando"),
     (R(r"^(?:aton )?(?P<v>maximiz\w*|minimiz\w*) (?:o |a |a janela d[oa] )?(?P<n>(?!tudo\b)[\w ]+)$"),
      lambda c, m: _janela_regra("maximizar" if m.group("v").startswith("max") else "minimizar", m.group("n")), "comando"),
+    # modo agente: olha a tela e age passo a passo (usa o Claude a cada passo)
+    (R(r"^(?:aton )?(?:modo agente|agente|faz (?:isso )?(?:pra|para) mim|resolve (?:isso )?(?:pra|para) mim)\b"),
+     lambda c, m: _agente_cmd(), "comando"),
+    (R(r"^(?:aton )?(?:abre |abra |mostra |mostre |ver |quero ver )?(?:o |meu )?historico(?: (?:de|das|dos) (?:pesquisas?|perguntas?|conversas?))?$"),
+     lambda c, m: ((HISTORICO() if HISTORICO else None) or "Histórico na tela.", None), "comando"),
+    # resumo do dia (sem IA): clima, agenda, lembretes, e-mails e manchetes, falado e num cartão do painel
+    (R(r"^(?:aton )?(?:bom dia|resumo (?:do dia|matinal|da manha|de hoje)|(?:como|qual) (?:esta|ta|e) (?:o )?meu dia|"
+       r"o que (?:eu )?tenho (?:pra|para) hoje|me atualiza|me atualize|briefing)(?: aton)?$"),
+     lambda c, m: (RESUMO(), None) if RESUMO else None, "comando"),
+    (R(r"^(?:aton )?(?:fecha|fechar|tira|some com) (?:o )?resumo$"),
+     lambda c, m: ((PAINEL({"resumo": None}) if PAINEL else None) or "Fechei o resumo.", None), "comando"),
+    # modos: jogo (pausa tudo até Ctrl+Win+P) e pesquisa (tela grande com resposta, fotos, vídeos e links)
+    (R(r"^(?:aton )?(?:(?:ativa|liga|entra no|entrar no|abre|abre o|coloca no) )?(?:o )?modo (?:jogo|game|gamer|jogar)$"),
+     lambda c, m: MODO("jogo", True) if MODO else None, "comando"),
+    (R(r"^(?:aton )?(?:(?:ativa|liga|entra no|entrar no|abre|abre o|coloca no) )?(?:o )?modo (?:pesquisa|de pesquisa|pesquisar)$"),
+     lambda c, m: MODO("pesquisa", True) if MODO else None, "comando"),
+    (R(r"^(?:aton )?(?:fecha|fechar|sai|sair|desliga|encerra) (?:a |o |d[ao] )?(?:modo )?(?:de )?pesquisa$"),
+     lambda c, m: MODO("pesquisa", False) if MODO else None, "comando"),
     # voz das respostas: "modo silencioso" (só texto) / "pode voltar a falar"
     (R(r"^(?:aton )?(?:modo silencioso|fica em silencio|fique em silencio|para de falar|nao fala mais|responde so por escrito|sem voz)$"),
      lambda c, m: (_voz_respostas(c, False), None), "comando"),
@@ -471,6 +490,14 @@ REGRAS = [   # a ordem importa: a primeira regra que casar responde
      lambda c, m: (_so_comandos(c, True), None), "comando"),
     (R(r"^(?:aton )?(?:(?:ativa|liga|entra no|volta pro|volta ao) )?(?:o )?modo (?:inteligente|completo|normal)$|^(?:aton )?(?:liga|religa) a (?:ia|inteligencia artificial)$|^(?:aton )?sai do modo so comandos$"),
      lambda c, m: (_so_comandos(c, False), None), "comando"),
+    (R(r"\b(?:abre|abra|abrir|mostra|mostre) (?:as |a tela de |o painel de )?configurac\w+\b|^configurac\w+ do aton$"),
+     lambda c, m: (_config_abrir(), None), "comando"),
+    (R(r"^(?:aton )?(?:me )?(?:mostra|mostre|exibe|exiba|quero ver|procura|busca) (?:umas? |algumas? )?(?:imagens?|fotos?|figuras?) (?:de |do |da |dos |das |sobre )?(.+)$"),
+     lambda c, m: ((f"Mostrando imagens de {m.group(1)}. Diga 'abre a pesquisa' para ver no navegador."
+                    if MOSTRAR_IMAGENS and MOSTRAR_IMAGENS(m.group(1)) else f"Não achei imagens de {m.group(1)}."), None), "comando"),
+    (R(r"^(?:aton )?(?:me )?(?:mostra|mostre|exibe|exiba|procura|busca) (?:uns? |um |alguns? )?(?:videos?|clipes?) (?:de |do |da |dos |das |sobre )?(.+)$"),
+     lambda c, m: ((f"Mostrando um vídeo e imagens de {m.group(1)}. Diga 'toca o vídeo' para assistir aqui."
+                    if MOSTRAR_IMAGENS and MOSTRAR_IMAGENS(m.group(1), True) else f"Não achei vídeos de {m.group(1)}."), None), "comando"),
     # "quais comandos você conhece?": abre a lista
     (R(r"\b(?:quais|que) comandos\b|\blista de comandos\b|\bo que voce sabe fazer\b|\bmeus comandos\b"),
      lambda c, m: _lista_comandos(), "pergunta"),
@@ -589,6 +616,288 @@ def pesquisar_web(consulta, n=5):
                 "essa informação agora; não responda com base na memória de treino.")
     return "Resultados do DuckDuckGo:\n" + "\n".join(f"- {x.get('title','')}: {x.get('body','')} ({x.get('href','')})" for x in r)
 
+# ------------------------------------------------------------------ perfil do Chrome
+def chrome_exe():
+    for p in (r"%ProgramFiles%\Google\Chrome\Application\chrome.exe", r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe",
+              r"%LocalAppData%\Google\Chrome\Application\chrome.exe"):
+        p = os.path.expandvars(p)
+        if os.path.isfile(p): return p
+    return None
+
+def abrir_no_chrome(cfg, url=None):
+    """Abre o Chrome (ou um endereço nele) no perfil escolhido em "chrome_perfil" (ex.: "Default", "Profile 1")."""
+    import subprocess
+    exe, perfil = chrome_exe(), (cfg.get("chrome_perfil") or "").strip()
+    if not exe or not perfil: return False
+    subprocess.Popen([exe, f"--profile-directory={perfil}"] + ([url] if url else []))
+    return True
+
+def usar_perfil_chrome(cfg):
+    """Com "chrome_perfil" no config, TUDO que o Aton abre na internet vai para esse perfil do Chrome (em vez do
+    último perfil usado). Sem a opção, nada muda: vale o navegador padrão do Windows."""
+    import webbrowser
+    if not (cfg.get("chrome_perfil") or "").strip() or not chrome_exe(): return
+    original = webbrowser.open
+    def abrir(url, new=0, autoraise=True):
+        if str(url).lower().startswith(("http://", "https://")) and abrir_no_chrome(cfg, url): return True
+        return original(url, new, autoraise)
+    webbrowser.open = abrir
+    log.info("Chrome: usando sempre o perfil \"%s\".", cfg["chrome_perfil"])
+
+FONTES_NOTICIAS = [("G1", "https://g1.globo.com/rss/g1/"), ("InfoMoney", "https://www.infomoney.com.br/feed/"),
+                   ("CNN Brasil", "https://www.cnnbrasil.com.br/feed/")]
+NOTICIAS = {"itens": [], "t": 0.0, "lendo": None, "resultado": False}   # resultado = há uma pesquisa na tela do modo pesquisa
+
+def ultimas_noticias(por_fonte=4):
+    """As últimas manchetes do G1, InfoMoney e CNN Brasil (pelos feeds RSS públicos deles), intercaladas:
+    [{fonte, titulo, url, img, quando}]. Fica guardado por 5 minutos."""
+    import html, email.utils, threading
+    if NOTICIAS["itens"] and time.time() - NOTICIAS["t"] < 300: return NOTICIAS["itens"]
+    grupos = {}
+    def ler(nome, url):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            x = urllib.request.urlopen(req, timeout=8).read().decode("utf-8", "replace")
+            out = []
+            for it in x.split("<item>")[1:por_fonte + 4]:
+                tag = lambda t: (re.search(rf"<{t}[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</{t}>", it, re.S) or [None, ""])[1].strip()
+                titulo, link = html.unescape(re.sub(r"<[^>]+>", "", tag("title"))), tag("link")
+                if not titulo or not link.startswith("https://"): continue
+                img = re.search(r'(?:url|src)="(https://[^"]+?\.(?:jpg|jpeg|png|webp)[^"]*)"', it)
+                try:
+                    dt = email.utils.parsedate_to_datetime(tag("pubDate"))
+                    if dt.tzinfo is None: dt = dt.replace(tzinfo=datetime.timezone.utc)     # "-0000" = horário de Greenwich
+                    quando = dt.astimezone().strftime("%H:%M")
+                except Exception: quando = ""
+                out.append({"fonte": nome, "titulo": titulo[:140], "url": link, "img": html.unescape(img.group(1)) if img else "",
+                            "quando": quando})
+                if len(out) >= por_fonte: break
+            grupos[nome] = out
+        except Exception as e:
+            log.warning("Notícias do %s falharam: %r", nome, e)
+    ths = [threading.Thread(target=ler, args=f, daemon=True) for f in FONTES_NOTICIAS]
+    for t in ths: t.start()
+    for t in ths: t.join(9)
+    itens = [g[i] for i in range(por_fonte) for nome, _ in FONTES_NOTICIAS for g in [grupos.get(nome, [])] if i < len(g)]
+    if itens: NOTICIAS.update(itens=itens, t=time.time())
+    return itens
+
+def ler_noticia(i):
+    """Baixa a página da notícia i (da lista na tela) e tira só o texto: {fonte, titulo, url, img, quando, paragrafos}.
+    Tudo é feito aqui no PC, sem IA (não gasta tokens)."""
+    import html
+    n = NOTICIAS["itens"][i]
+    req = urllib.request.Request(n["url"], headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "pt-BR"})
+    pagina = urllib.request.urlopen(req, timeout=10).read().decode("utf-8", "replace")
+    pagina = re.sub(r"<(script|style|noscript|svg|figure|aside|nav|footer|header|form)\b.*?</\1>", " ", pagina, flags=re.S | re.I)
+    def paragrafos(trecho):
+        out = []
+        for bruto in re.findall(r"<(?:p|h2|h3|li)\b[^>]*>(.*?)</(?:p|h2|h3|li)>", trecho, re.S | re.I):
+            t = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", "", bruto))).strip()
+            if len(t) < 45 or t in out: continue
+            if re.search(r"^(leia (tambem|também|mais)|veja (tambem|também|mais)|siga |assine |compartilhe|publicidade|continua depois|"
+                         r"receba |clique aqui|baixe o app|©|todos os direitos)", t, re.I): continue
+            out.append(t[:1500])
+            if len(out) >= 60: break
+        return out
+    # 1º o corpo marcado pelo site (G1 usa content-text__container); 2º todos os <article>; por fim a página inteira
+    ps = paragrafos(" ".join(re.findall(r'<p[^>]*class="[^"]*content-text__container[^"]*"[^>]*>.*?</p>', pagina, re.S | re.I)))
+    if len(ps) < 3: ps = paragrafos(" ".join(re.findall(r"<article\b.*?</article>", pagina, re.S | re.I)))
+    if len(ps) < 3: ps = paragrafos(pagina)
+    img = n["img"]
+    if not img:
+        og = re.search(r'<meta[^>]+property="og:image"[^>]+content="(https://[^"]+)"', pagina)
+        img = html.unescape(og.group(1)) if og else ""
+    if len(ps) >= 2:                                   # só vale como "notícia aberta" se o texto foi lido de verdade
+        NOTICIAS["lendo"] = n["url"]
+        NOTICIAS["artigo"] = {"fonte": n["fonte"], "titulo": n["titulo"], "texto": "\n".join(ps)[:9000]}
+    return {"fonte": n["fonte"], "titulo": n["titulo"], "url": n["url"], "img": img, "quando": n["quando"], "paragrafos": ps, "i": i}
+
+def noticia_no_painel(i):
+    """Abre a notícia i no leitor do modo pesquisa (ou no navegador, se não der para ler o texto)."""
+    try:
+        a = ler_noticia(i)
+    except Exception as e:
+        log.warning("Não li a notícia: %r", e); a = None
+    if a and len(a["paragrafos"]) >= 2 and PAINEL:
+        PAINEL({"artigo": a}); log.info("Notícia no leitor: %s (%d parágrafos)", a["fonte"], len(a["paragrafos"]))
+        return True
+    import webbrowser; webbrowser.open(NOTICIAS["itens"][i]["url"])
+    return False
+
+def _agente_cmd():
+    """'modo agente: <tarefa>' — tira o comando do texto ORIGINAL (com acentos e pontuação) e roda depois da fala."""
+    if not AGENTE: return None
+    obj = re.sub(r"(?i)^\W*(?:aton\W+)?(?:modo\s+agente|agente|faz(?:\s+isso)?\s+(?:pra|para)\s+mim|resolve(?:\s+isso)?\s+(?:pra|para)\s+mim)\W*", "", ORIGINAL).strip()
+    if len(obj) < 5: return "Qual é a tarefa? Diga, por exemplo: modo agente, abre o bloco de notas e escreve uma lista.", None
+    return "Certo, vou fazer passo a passo. Para interromper, aperte Control, Alt, P.", (lambda o=obj: AGENTE(o))
+
+def comando_do_leitor(t):
+    """Com uma notícia aberta no leitor: 'desce', 'sobe', 'volta pras notícias', 'abre no navegador'."""
+    if not PAINEL: return None
+    if NOTICIAS.get("resultado") and not NOTICIAS.get("lendo"):          # resultado de uma pesquisa na tela: "volta" = notícias
+        if re.match(r"^(?:aton )?(?:volta|voltar|volte)(?: (?:pra|para|pras|para as|pro|para o|a|as))? ?(?:noticias?|lista|manchetes|inicio|tela inicial)?$", t):
+            NOTICIAS["resultado"] = False; PAINEL({"leitor": "fechar"}); return "Voltei para as notícias."
+        return None
+    if not NOTICIAS.get("lendo"): return None
+    if re.match(r"^(?:aton )?(?:desce|descer|rola (?:pra|para) baixo|continua|mais|proxima pagina)(?: (?:a pagina|mais|um pouco))?$", t):
+        PAINEL({"leitor": "desce"}); return "Descendo."
+    if re.match(r"^(?:aton )?(?:sobe|subir|rola (?:pra|para) cima|volta um pouco)(?: (?:a pagina|mais|um pouco))?$", t):
+        PAINEL({"leitor": "sobe"}); return "Subindo."
+    if re.match(r"^(?:aton )?(?:volta|voltar|fecha|fechar)(?: (?:pra|para|pras|para as|a|as|essa))? ?(?:noticias?|lista|manchetes)?$", t):
+        NOTICIAS["lendo"] = None; PAINEL({"leitor": "fechar"}); return "Voltei para as notícias."
+    if re.match(r"^(?:aton )?(?:abre|abra|abrir)(?: (?:isso|essa noticia|a noticia|ela))? no (?:navegador|chrome|site)$", t):
+        import webbrowser; webbrowser.open(NOTICIAS["lendo"]); return "Abri a notícia no navegador."
+    return None
+
+def abrir_noticia(t):
+    """'abre a segunda notícia' / 'abre a notícia 3' com as manchetes na tela (modo pesquisa)."""
+    m = re.match(r"^(?:aton )?(?:abre|abra|abrir|le|ler|mostra) (?:a )?(?:(primeira|segunda|terceira|quarta|quinta|sexta|setima|oitava|nona|decima) noticia|noticia (?:numero )?(\d+|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez))$", t)
+    if not m or not NOTICIAS["itens"]: return None
+    ords = ["primeira", "segunda", "terceira", "quarta", "quinta", "sexta", "setima", "oitava", "nona", "decima"]
+    nums = {"um": 1, "uma": 1, "dois": 2, "duas": 2, "tres": 3, "quatro": 4, "cinco": 5, "seis": 6, "sete": 7, "oito": 8, "nove": 9, "dez": 10}
+    i = ords.index(m.group(1)) if m.group(1) else (int(m.group(2)) if m.group(2).isdigit() else nums[m.group(2)]) - 1
+    if not 0 <= i < len(NOTICIAS["itens"]): return f"Só há {len(NOTICIAS['itens'])} notícias na tela."
+    n = NOTICIAS["itens"][i]
+    if PAINEL:                                     # no modo pesquisa: abre no leitor da própria tela
+        import threading; threading.Thread(target=noticia_no_painel, args=(i,), daemon=True).start()
+        return f"Notícia do {n['fonte']}."
+    import webbrowser; webbrowser.open(n["url"])
+    return f"Abri a notícia do {n['fonte']}: {n['titulo']}."
+
+def buscar_imagens(consulta, n=3):
+    """[{url, titulo}] de fotos da internet (miniaturas do buscador, com filtro de conteúdo adulto ligado)."""
+    from ddgs import DDGS
+    r = []
+    for regiao in ("br-pt", "wt-wt"):
+        try:
+            r = DDGS(timeout=6).images(consulta, region=regiao, safesearch="on", max_results=n + 3) or []
+        except Exception as e:
+            log.info("Busca de imagens (%s) vazia: %s", regiao, str(e)[:60])
+        if r: break
+    out = [{"url": x.get("thumbnail") or x.get("image"), "titulo": (x.get("title") or "")[:80]} for x in r]
+    return [x for x in out if str(x["url"]).startswith("https://")][:n]
+
+def buscar_videos(consulta, n=3):
+    """Os n melhores vídeos do YouTube sobre o assunto (mesma avaliação do buscar_video)."""
+    return buscar_video(consulta, n) or []
+
+def buscar_video(consulta, varios=0):
+    """Um vídeo do YouTube sobre o assunto: {url, thumb, titulo, duracao, site}, ou None. Lê a página de resultados do
+    YouTube (sem chave), como o tocar_video; pula vídeos curtos demais (Shorts) e os muito longos."""
+    url = "https://www.youtube.com/results?search_query=" + urllib.parse.quote_plus(consulta)
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "pt-BR"})
+        html = urllib.request.urlopen(req, timeout=8).read().decode("utf-8", "replace")
+    except Exception as e:
+        log.warning("Busca no YouTube falhou: %r", e); return None
+    achados = []
+    for m in re.finditer(r'"videoRenderer":\{"videoId":"([\w-]{11})"', html):
+        trecho = html[m.end():m.end() + 6000]
+        t = re.search(r'"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"', trecho)
+        d = re.search(r'"lengthText":\{.{0,300}?"simpleText":"([\d:]+)"', trecho)
+        if not t or not d: continue                              # sem duração = transmissão ao vivo ou anúncio
+        try: titulo = json.loads('"' + t.group(1) + '"')
+        except ValueError: titulo = t.group(1)
+        p = [int(x) for x in d.group(1).split(":")]
+        seg = p[-1] + 60 * (p[-2] if len(p) > 1 else 0) + 3600 * (p[-3] if len(p) > 2 else 0)
+        achados.append((m.group(1), titulo[:90], d.group(1), seg))
+        if len(achados) >= 8: break
+    if not achados: return None
+    # avaliação: prefere vídeos de 30 s a 15 min cujo título tem as palavras pedidas
+    pal = [w for w in norm(consulta).split() if len(w) > 2]
+    def nota(a):
+        tn = norm(a[1])
+        return (sum(w in tn for w in pal) / max(1, len(pal))) + (0.5 if 30 <= a[3] <= 900 else 0) - (0.3 if a[3] > 3600 else 0)
+    item = lambda a: {"url": "https://www.youtube.com/watch?v=" + a[0], "thumb": f"https://i.ytimg.com/vi/{a[0]}/mqdefault.jpg",
+                      "titulo": a[1], "duracao": a[2], "site": "YouTube"}
+    if varios: return [item(a) for a in sorted(achados, key=nota, reverse=True)[:varios]]
+    return item(max(achados, key=nota))
+
+def links_de(consulta, video=None):
+    """Links para abrir a mesma busca no navegador."""
+    from urllib.parse import quote_plus
+    q = quote_plus(consulta)
+    ls = [{"rotulo": "Pesquisa no Google", "url": f"https://www.google.com/search?q={q}", "tipo": "pesquisa"},
+          {"rotulo": "Mais imagens", "url": f"https://www.google.com/search?tbm=isch&q={q}", "tipo": "imagens"}]
+    if video: ls.insert(0, {"rotulo": "Abrir o vídeo", "url": video["url"], "tipo": "video"})
+    ls.append({"rotulo": "Vídeos no YouTube", "url": f"https://www.youtube.com/results?search_query={q}", "tipo": "videos"})
+    return ls
+
+MOSTRAR_IMAGENS = None     # o assistente.py põe aqui a função que mostra imagens/vídeo/links no painel: f(consulta, video=False)
+MIDIA = {"links": [], "t": 0.0, "consulta": "", "video": None, "videos": [], "tocando": False}   # o que está na tela agora
+MODO = None                # o assistente.py põe aqui a função dos modos: f(nome, ligar) -> (resposta, ação depois da fala)
+AGENTE = None              # idem: função do modo agente: f(objetivo)
+HISTORICO = None           # idem: função que mostra o histórico na tela do modo pesquisa: f()
+RESUMO = None              # o assistente.py põe aqui a função do resumo do dia: f() -> texto para falar
+PAINEL = None              # o assistente.py põe aqui a função que manda um recado ao wallpaper: f(dict)
+
+def fluxo_video(url, altura=480):
+    """Endereços diretos do vídeo (VP9) e do áudio (Opus) no YouTube, para o player do painel: o Wallpaper Engine não
+    aceita páginas embutidas nem MP4/H.264, mas toca WebM. Os endereços valem por algumas horas e só neste PC."""
+    import yt_dlp
+    with yt_dlp.YoutubeDL({"quiet": True, "no_warnings": True, "skip_download": True, "noplaylist": True}) as y:
+        info = y.extract_info(url, download=False)
+    fs = [f for f in info.get("formats", []) if f.get("protocol") == "https" and f.get("ext") == "webm" and f.get("url")]
+    vs = sorted((f for f in fs if str(f.get("vcodec", "")).startswith("vp") and (f.get("height") or 0) <= altura),
+                key=lambda f: f.get("height") or 0)
+    aus = sorted((f for f in fs if f.get("vcodec") in (None, "none") and str(f.get("acodec", "")).startswith("opus")),
+                 key=lambda f: f.get("abr") or 0)
+    if not vs or not aus: raise RuntimeError("este vídeo não tem um formato que o painel consiga tocar")
+    return {"v": vs[-1]["url"], "a": aus[-1]["url"], "titulo": (info.get("title") or "")[:90]}
+
+def tocar_no_painel(i=0):
+    """Busca os fluxos (leva ~2 s) e manda o painel tocar. Se não der, abre no navegador. i = qual vídeo da lista."""
+    vs = MIDIA.get("videos") or []
+    v = vs[i] if 0 <= i < len(vs) else MIDIA.get("video")
+    if not v or not PAINEL: return
+    try:
+        fl = fluxo_video(v["url"])
+        MIDIA["tocando"] = True
+        PAINEL({"cmd": "tocar_video", "v": fl["v"], "a": fl["a"], "titulo": fl["titulo"], "url": v["url"]})
+    except Exception as e:
+        log.warning("Vídeo no painel falhou (%s): abrindo no navegador.", str(e)[:120])
+        MIDIA["tocando"] = False
+        import webbrowser; webbrowser.open(v["url"])
+
+def video_no_painel(t):
+    """'toca o vídeo' / 'fecha o vídeo': o player fica na janela flutuante do painel, sem abrir o navegador."""
+    if not PAINEL: return None
+    if MIDIA["tocando"] and re.match(r"^(?:aton )?(?:fecha|fechar|tira|para|pare|encerra|some com)\b (?:o |esse |com o )?(?:video|player)$", t):
+        MIDIA["tocando"] = False; PAINEL({"cmd": "fechar_video"}); return "Fechei o vídeo."
+    if MIDIA["tocando"] and re.match(r"^(?:aton )?(?:pausa|pause|pausar)\b (?:o |esse )?video$", t):
+        PAINEL({"cmd": "pausar_video"}); return "Pausado."
+    if MIDIA["tocando"] and re.match(r"^(?:aton )?(?:continua|despausa|da play)\b (?:n?o |esse )?video$", t):
+        PAINEL({"cmd": "continuar_video"}); return "Continuando."
+    if MIDIA["video"] and time.time() - MIDIA["t"] < 300 and re.match(
+            r"^(?:aton )?(?:toca|tocar|toque|reproduz|reproduzir|reproduza|roda|passa|assiste|assistir|da play n?o?|play n?o?|inicia|comeca)\b ?(?:o |esse |no )?"
+            r"(?:(primeiro|segundo|terceiro) )?video(?: (um|dois|tres|1|2|3))?(?: aqui| ai| na tela| no painel| no aton)?$", t):
+        m = re.search(r"(primeiro|segundo|terceiro) video|video (um|dois|tres|1|2|3)", t)
+        i = {"primeiro": 0, "um": 0, "1": 0, "segundo": 1, "dois": 1, "2": 1, "terceiro": 2, "tres": 2, "3": 2}[m.group(1) or m.group(2)] if m else 0
+        MIDIA["tocando"] = True; MIDIA["t"] = time.time()
+        import threading; threading.Thread(target=tocar_no_painel, args=(i,), daemon=True).start()
+        return "Carregando o vídeo no painel. Diga 'fecha o vídeo' quando quiser."
+    return None
+
+def abrir_link_da_midia(t):
+    """'abre o vídeo / a pesquisa / as imagens / o link' logo depois de o Aton mostrar algo: abre no navegador."""
+    if not MIDIA["links"] or time.time() - MIDIA["t"] > 180: return None
+    m = re.match(r"^(?:aton )?(?:abre|abra|abrir|mostra|quero ver|pode abrir|sim abre)(?: no navegador)? (?:o |a |os |as |esse |essa |mais )?"
+                 r"(video|videos|pesquisa|busca|imagens|fotos|link|links|resultado|resultados)(?: (?:no|do) (?:navegador|google|youtube))?$", t)
+    if not m: return None
+    quer = {"video": "video", "videos": "videos", "imagens": "imagens", "fotos": "imagens"}.get(m.group(1), "pesquisa")
+    alvo = next((l for l in MIDIA["links"] if l["tipo"] == quer), None) or \
+           next((l for l in MIDIA["links"] if quer == "video" and l["tipo"] == "videos"), None) or MIDIA["links"][0]
+    import webbrowser
+    webbrowser.open(alvo["url"])
+    return {"video": "Abri o vídeo", "videos": "Abri os vídeos", "imagens": "Abri mais imagens",
+            "pesquisa": "Abri a pesquisa"}[alvo["tipo"]] + f" de {MIDIA['consulta']} no navegador."
+
+def _config_abrir():
+    import aton_remote, webbrowser
+    webbrowser.open(f"http://127.0.0.1:{aton_remote.PORTA}/config.html#t={aton_remote.TOKEN}")
+    return "Abri as configurações."
+
 # ------------------------------------------------------------------ ferramentas oferecidas à IA (chamada de funções do Ollama)
 # Padrão de "tool calling" adaptado do OrchestratorAgent do OpenJarvis (Apache-2.0).
 def _f(nome, desc, props=None, req=()):
@@ -598,6 +907,17 @@ def _f(nome, desc, props=None, req=()):
 ESQUEMAS = [
     _f("pesquisar_web", "Pesquisa na internet (DuckDuckGo). Use para fatos atuais, notícias, resultados de jogos, preços, "
        "pessoas e qualquer coisa que você não saiba com certeza.", {"consulta": {"type": "string", "description": "termos da busca"}}, ["consulta"]),
+    _f("mostrar_midia", "MOSTRA NA TELA fotos da internet (e opcionalmente um vídeo) sobre algo, com links para abrir no navegador. "
+       "Use sempre que o usuário pedir para ver ou mostrar alguma coisa ('me mostra um Porsche', 'quero ver a fórmula de Bhaskara', "
+       "'como é um axolote'). Você decide o 'video': true para o que vale ver em movimento (carros, animais, lugares, esportes, "
+       "pessoas, jogos, filmes, como fazer algo); false para o que é estático (fórmulas, equações, diagramas, mapas, logotipos, "
+       "tabelas, símbolos, textos).",
+       {"consulta": {"type": "string", "description": "o que mostrar, em poucas palavras"},
+        "video": {"type": "boolean", "description": "true = incluir um vídeo junto das fotos"}}, ["consulta"]),
+    _f("buscar_historico", "Procura nas conversas ANTERIORES com o usuário (perguntas que ele fez e o que você respondeu, com data). "
+       "Use quando ele perguntar 'o que eu te perguntei sobre X', 'o que você me disse ontem', 'qual era aquele ... que pesquisamos'.",
+       {"busca": {"type": "string", "description": "palavras do assunto; vazio = as conversas mais recentes"},
+        "dias": {"type": "integer", "description": "só os últimos N dias (1 = hoje e ontem)"}}),
     _f("clima", "Clima atual e previsão de hoje (Open-Meteo).", {"cidade": {"type": "string", "description": "cidade; vazio = cidade do usuário"}}),
     _f("hora_data", "Hora e data atuais do computador."),
     _f("musica", "Controla o player de música do Windows (Spotify) ou diz o que está tocando.",
@@ -628,6 +948,19 @@ def chamar(nome, args, cfg, memoria):
     """Executa uma ferramenta pedida pela IA. Devolve (texto para a IA, função a rodar depois da fala ou None)."""
     args = args or {}
     if nome == "pesquisar_web": return pesquisar_web(args.get("consulta", "")), None
+    if nome == "buscar_historico":
+        import historico
+        return historico.para_ia(historico.buscar(str(args.get("busca", "")), args.get("dias") or None)), None
+    if nome == "mostrar_midia":
+        c = str(args.get("consulta", "")).strip()
+        if not c: return "Diga o que devo mostrar.", None
+        if not MOSTRAR_IMAGENS: return "A tela não está disponível agora.", None
+        video = bool(args.get("video")) and not re.search(     # coisas estáticas nunca levam vídeo, mesmo que a IA peça
+            r"\b(formula|equac|teorema|diagrama|mapa|logo|logotipo|tabela|simbolo|grafico|bandeira|brasao|planta baixa|organograma)", norm(c))
+        r = MOSTRAR_IMAGENS(c, video)
+        if not r: return f"Não achei imagens de {c}.", None
+        return (f"Coloquei na tela {r} de {c}. Para abrir no navegador, diga "
+                + ("'abre a pesquisa'; para assistir aqui mesmo, diga 'toca o vídeo'." if "vídeo" in r else "'abre a pesquisa'.")), None
     if nome == "clima": return clima(cfg, args.get("cidade") or None), None
     if nome == "hora_data": return hora(cfg) + " " + data(cfg), None
     if nome == "musica":
@@ -796,6 +1129,15 @@ def executar(texto, cfg):
         ULTIMO_TIPO = "comando"
         return r
     t = norm(texto)
+    r = video_no_painel(t) or abrir_link_da_midia(t) or comando_do_leitor(t) or abrir_noticia(t)   # "toca o vídeo" (no painel) / "abre o vídeo" (no navegador)
+    if r is not None:
+        ULTIMO_TIPO = "comando"
+        return r, None
+    import atalhos                         # 2º: comandos por tecla com contexto (vídeo, tela cheia, guias): sempre iguais, sem IA
+    r = atalhos.regra(t)
+    if r is not None:
+        ULTIMO_TIPO = "comando"
+        return r, None
     for rx, fn, tp in REGRAS:
         m = rx.search(t)
         if m:

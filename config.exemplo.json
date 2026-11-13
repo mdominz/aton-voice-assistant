@@ -55,10 +55,14 @@
   "nivel_fundo": 0.25,
   "sugerir_pausa_horas": 3,
 
+  "resumo_matinal": true,
+  "imagens_na_pesquisa": true,
+  "notificacoes_celular": true,
   "app_celular": true,
   "ponte_chrome": true,
   "porta": 8765,
   "reiniciar_wallpaper": false,
+  "chrome_perfil": "",
   "whatsapp_via": "app",
 
   "player_preferido": "spotify",

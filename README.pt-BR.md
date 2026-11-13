@@ -50,7 +50,17 @@ controle remoto:
   clicar em links e botões pelo nome, pesquisar no próprio site, ler a página.
 - **WhatsApp do PC**: ler mensagens e enviar — **sempre pedindo confirmação antes de enviar**.
 - **E-mail (Outlook), agenda, lembretes, Spotify, área de transferência, tarefas em segundo plano.**
-- **App do celular** (pasta `pwa/`): conversa por texto e voz, print da tela do PC e controle remoto, pela VPN.
+- **App do celular** (pasta `pwa/`): conversa por texto e voz, print da tela do PC e controle remoto, pela VPN, com
+  notificações de lembretes e de tarefas concluídas.
+- **Comandos por tecla com contexto**: pausar/tocar, tela cheia, avançar, legenda, guias e picture in picture apertam
+  sempre as mesmas teclas, depois de conferir o que está aberto (qual janela, qual site, se está em tela cheia).
+  "Abre o vídeo X" clica nesse vídeo na página que já está aberta.
+- **Modo pesquisa**: tela cheia com as últimas notícias (G1, InfoMoney, CNN Brasil), leitor de notícias com resumo e
+  respostas com fotos, vídeos (tocam dentro do painel) e links.
+- **Resumo do dia**: "bom dia" traz clima, agenda, lembretes, e-mails não lidos e manchetes.
+- **Modo agente**: "modo agente: <tarefa>" olha a tela e age passo a passo com mouse e teclado, com travas de segurança
+  (nunca digita senhas, pede confirmação antes de comprar/enviar/apagar).
+- **Histórico pesquisável**, **modo jogo** (Ctrl+Win+P pausa tudo) e **tela de configurações**.
 
 A lista completa de comandos é gerada por `gerar_lista.py` (arquivo `LISTA_DE_COMANDOS.html`) ou dizendo
 "Aton, quais comandos você conhece?".

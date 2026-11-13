@@ -228,8 +228,42 @@ claude mcp add aton -- "<Aton folder>\venv\Scripts\python.exe" "<Aton folder>\at
 | `A porta ... já está em uso` | Another copy of Aton is already running. |
 | `Ignorado: "..."` | It heard speech that wasn't the wake word (only with `log_ativacao`). |
 
+## 17. Settings screen
+
+Instead of editing `config.json`, say **"Aton, abre as configurações"** ("open the settings"), or open
+`http://127.0.0.1:8766/config.html` on the PC. On the phone, tap the status at the top of the app →
+**Configurações do Aton**. The screen asks for the token in `aton_token.txt`, only shows everyday options (never keys
+or IDs) and has a **Reiniciar o Aton** ("restart") button for the options that need a restart.
+
+## 18. Phone notifications
+
+In the phone app, tap the status at the top → **Notificações → Ativar**. Aton then notifies you about reminders and
+finished long tasks even with the app closed. On iPhone this needs iOS 16.4 or later and the app opened from its Home
+Screen icon. The notification text is encrypted all the way to the device; Apple's/Google's delivery service can't read
+it. The key stays on your PC (`vapid_private.pem`). Turn it off with `"notificacoes_celular": false`.
+
+## 19. Images in answers
+
+When Aton searches the web it also shows up to 3 pictures of the subject: in a floating panel on the dashboard and in
+the phone app. It also works as a command: "Aton, mostra imagens de aurora boreal" ("show pictures of the northern
+lights"). Pictures come from the search engine (DuckDuckGo, adult-content filter on). Turn it off with
+`"imagens_na_pesquisa": false`.
+
+## 20. Modes and screen features
+
+- **Search mode** ("Aton, modo pesquisa" / "fecha a pesquisa"): a full-screen view with the latest headlines. Click a
+  headline (or "abre a segunda notícia") to read it on screen; "resume essa notícia" summarizes it. Questions show the
+  answer, photos, videos and links; "toca o segundo vídeo" plays inside the dashboard; "voltar" goes back to the news;
+  "abre o histórico" shows past conversations. The search box opens a small window for typing.
+- **Game mode** ("Aton, modo jogo" or **Ctrl+Win+P**): stops listening and blanks the dashboard until the next Ctrl+Win+P.
+- **Day summary** ("bom dia"): also runs by itself at the first greeting of the morning (`"resumo_matinal": false` turns it off).
+- **Agent mode** ("modo agente: <task>"): asks Claude at every step (uses tokens). Stop it with **Ctrl+Alt+P**. It never
+  types passwords or makes payments; buy/send/delete buttons ask for your "sim".
+- **Video inside the dashboard** uses the `yt-dlp` library; if a video won't play, it opens in the browser.
+- **Chrome profile**: set `"chrome_perfil"` (or use the settings screen) to choose which profile Aton opens sites in.
+
 ## What never goes to GitHub
 
 `config.json`, `aton_token.txt`, `outlook_token.json`, `spotify_token.json`, `memoria.json`, `agenda.json`,
 `lembretes.json`, `monitores.json`, `ultima_organizacao.json`, logs, `amostras_ativacao/`,
-`vocabulario_aprendido.json`, `venv/` and `modelos/` — see `.gitignore`.
+`vocabulario_aprendido.json`, `vapid_private.pem`, `push_inscricoes.json`, `historico.jsonl`, `uso_claude.json`, `venv/` and `modelos/` — see `.gitignore`.

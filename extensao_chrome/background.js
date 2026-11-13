@@ -1,6 +1,8 @@
 // Aton - controle por voz do Chrome.
 // Conecta no Aton (ws://127.0.0.1:8767, só neste PC), recebe comandos {id, cmd, args} e responde {id, ok, res|erro}.
 const PORTA = 8767;
+// igual ao "version" do manifest.json: o Aton compara e manda recarregar se o Chrome estiver com código velho em cache
+const VERSAO_CODIGO = "1.8.3";
 let ws = null;
 
 function conectar() {
@@ -53,6 +55,21 @@ async function rodar(tabId, func, args, world = "MAIN") {
 }
 
 // ------------------------------------------------------------------ funções que rodam DENTRO da página
+function armarPip() {
+  // O Chrome só abre o picture-in-picture com um gesto do usuário: o Aton aperta F9 de verdade logo depois.
+  const v = [...document.querySelectorAll("video")].find((x) => x.readyState > 0 && x.offsetWidth > 0);
+  if (!v) return null;
+  const h = (e) => {
+    if (e.key !== "F9") return;
+    e.preventDefault(); e.stopImmediatePropagation(); window.removeEventListener("keydown", h, true);
+    (document.pictureInPictureElement ? document.exitPictureInPicture() : v.requestPictureInPicture()).catch(() => {});
+  };
+  window.addEventListener("keydown", h, true);
+  setTimeout(() => window.removeEventListener("keydown", h, true), 8000);
+  return true;
+}
+function estadoPip() { return document.pictureInPictureElement ? true : null; }
+
 function controlarMidia(acao, valor) {
   const ms = [...document.querySelectorAll("video,audio")].filter((m) => m.readyState > 0 || m.currentSrc);
   if (!ms.length) return null;
@@ -191,6 +208,25 @@ async function pagina(op, a) {
     }
     clicar(esc.el);
     return { texto: esc.texto, href: esc.href };
+  }
+
+  if (op === "melhor") {
+    // "abre o vídeo X": o item da página cujo título mais se parece com o que foi FALADO (palavras parciais/erradas ok)
+    const PARE = new Set(["o", "a", "os", "as", "de", "do", "da", "dos", "das", "e", "em", "no", "na", "um", "uma", "que", "pra", "para", "com", "the", "of", "and", "video", "videos"]);
+    const palavras = (t) => norm(t).replace(/[^a-z0-9 ]/g, " ").split(" ").filter((w) => w.length > 1 && !PARE.has(w));
+    const falado = palavras(a.texto);
+    if (!falado.length) throw new Error("diga o nome do que devo abrir");
+    const yt = location.hostname.includes("youtube");
+    let c = clicaveis();
+    if (yt) { const v = c.filter((x) => /\/watch|\/shorts\//.test(x.href)); if (v.length) c = v; }   // no YouTube: só vídeos
+    const parecida = (w, ws) => ws.some((x) => x === w || (w.length >= 4 && x.length >= 4 && (x.startsWith(w.slice(0, 4)) || w.startsWith(x.slice(0, 4)))));
+    const pont = (x) => { const ws = palavras(x.texto); return falado.filter((w) => parecida(w, ws)).length / falado.length; };
+    const achados = c.map((x) => ({ ...x, p: pont(x) })).filter((x) => x.p > 0)
+      .sort((x, y) => y.p - x.p || (y.tela - x.tela) || x.texto.length - y.texto.length);
+    if (!achados.length) return { texto: "", p: 0, total: c.length, amostra: c.slice(0, 15).map((x) => x.texto.slice(0, 60)) };
+    const esc = achados[0];
+    if (!a.so_ver) clicar(esc.el);
+    return { texto: esc.texto, href: esc.href, p: esc.p, segundo: achados[1] ? achados[1].p : 0 };
   }
 
   if (op === "pesquisar") {
@@ -462,6 +498,14 @@ async function executar(cmd, a) {
       return r[0] || { titulo: t.title, url: t.url, texto: "" };
     }
     case "rolar": { const t = await abaAtual(); await rodar(t.id, rolar, [a.direcao || "baixo"], "ISOLATED"); return true; }
+    case "pip_armar": {
+      const r = await midia("estado");
+      const ok = await rodar(r.aba.id, armarPip, []);
+      if (!ok.length) throw new Error("nenhum vídeo nesta página");
+      await focar({ id: r.aba.id, windowId: r.aba.janela });
+      return r;
+    }
+    case "pip_estado": { const t = await abaAtual(); return (await rodar(t.id, estadoPip, [])).length > 0; }
     case "focar_video": { // traz para frente a aba do vídeo (o Aton então aperta "f" para a tela cheia)
       const r = await midia("estado");
       await focar({ id: r.aba.id, windowId: r.aba.janela });
@@ -479,7 +523,7 @@ async function executar(cmd, a) {
       const [r] = await chrome.scripting.executeScript({ target: { tabId: t.id }, func: pagina, args: [a.op, a] });
       return { ...(r ? r.result : {}), guia: t.title };
     }
-    case "versao": return chrome.runtime.getManifest().version;
+    case "versao": return VERSAO_CODIGO;
     case "recarregar_extensao": setTimeout(() => chrome.runtime.reload(), 200); return true;   // relê os arquivos da pasta
     default: throw new Error(`comando desconhecido: ${cmd}`);
   }

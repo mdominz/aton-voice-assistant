@@ -43,6 +43,17 @@ html,body{margin:0;height:100%;background:var(--fundo);color:var(--texto);overfl
 .legenda .eu{font:13px var(--mono);color:var(--suave);margin-bottom:8px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .legenda .ele{font-size:17px;line-height:24px;font-weight:300;color:var(--texto);text-shadow:0 0 8px var(--azul);overflow:hidden;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical}
 .oculto{opacity:0!important}
+/* imagens da internet que acompanham a resposta */
+.imgs{position:fixed;left:14px;right:14px;top:calc(var(--topo) + 58px);z-index:3;opacity:0;transition:opacity .4s;pointer-events:none}
+.imgs.vis{opacity:1;pointer-events:auto}
+.imgs .fotos{display:flex;gap:8px;justify-content:center}
+.imgs .fotos a{position:relative;flex:0 1 31%;min-width:0;display:block}
+.imgs img{display:block;width:100%;height:88px;object-fit:cover;border:1px solid var(--azul);border-radius:8px;box-shadow:0 0 10px var(--azul)}
+.imgs a.video::after{content:"\25B6";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:34px;height:34px;line-height:34px;text-align:center;border-radius:50%;background:rgba(2,6,16,.75);border:1px solid var(--azul-claro);color:var(--azul-claro);font-size:13px;padding-left:2px}
+.imgs .links{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.imgs .links a{font:11px var(--mono);letter-spacing:.5px;color:var(--azul-claro);border:1px solid var(--azul);border-radius:8px;padding:6px 9px;text-decoration:none;background:var(--vidro)}
+.mini{background:none;border:1px solid var(--azul);color:var(--azul-claro);border-radius:10px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer;text-decoration:none;white-space:nowrap}
+a.mini{display:block;text-align:center;margin:14px 0 4px}
 .aviso{position:fixed;left:30px;right:30px;top:64%;text-align:center;font:12px var(--mono);color:var(--erro);z-index:3;pointer-events:none}
 
 /* toque longo no núcleo */
@@ -148,6 +159,7 @@ html,body{margin:0;height:100%;background:var(--fundo);color:var(--texto);overfl
   </div>
 </div>
 <div class="aviso" id="aviso" role="status"></div>
+<div class="imgs" id="imgs"></div>
 
 <div class="base" id="base">
   <div class="controles">
@@ -190,6 +202,11 @@ html,body{margin:0;height:100%;background:var(--fundo);color:var(--texto);overfl
       <div>Modo demonstração<small>Testa o app sem o PC ligado.</small></div>
       <label class="chave"><input id="cfgDemo" type="checkbox"><span></span></label>
     </div>
+    <div class="linha-cfg">
+      <div>Notificações<small id="pushInfo">Lembretes e tarefas concluídas, mesmo com o app fechado.</small></div>
+      <button class="mini" id="btnPush" type="button">Ativar</button>
+    </div>
+    <a class="mini" id="lnkConfig" href="config.html">Configurações do Aton ›</a>
     <button class="salvar" type="submit">Salvar e conectar</button>
   </form>
 </section>
@@ -424,6 +441,7 @@ function tratar(m){
     case 'transcricao': legenda(m.texto, ''); break;
     case 'resposta': case 'notificacao':
       legenda(undefined, m.texto);
+      mostrarImgs(m.imagens || [], m.video, m.links || []);
       if (m.audio_url) tocar(base() + m.audio_url);
       break;
     case 'print': $('printImg').src = 'data:image/jpeg;base64,' + m.imagem; $('print').classList.add('aberto'); setEstado('repouso'); break;
@@ -497,6 +515,43 @@ function segurar(el, atraso){
 }
 segurar($('btnFalar'), 0);
 segurar($('zonaNucleo'), 220);
+
+/* ---------- imagens da resposta ---------- */
+let timerImgs = 0;
+function mostrarImgs(lista, video, links){
+  const box = $('imgs'); box.textContent = ''; clearTimeout(timerImgs);
+  if (!lista.length && !video) { box.classList.remove('vis'); return; }
+  links = links || []; const lk = t => (links.find(l => l.tipo === t) || {}).url;
+  const fotos = document.createElement('div'); fotos.className = 'fotos'; box.appendChild(fotos);
+  const item = (src, alt, url, cls) => { const a = document.createElement('a'), i = new Image();
+    if (url) { a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; } if (cls) a.className = cls;
+    i.alt = alt || ''; i.referrerPolicy = 'no-referrer'; i.onerror = () => a.remove(); i.src = src; a.appendChild(i); fotos.appendChild(a); };
+  lista.slice(0, video ? 2 : 3).forEach(x => item(x.url, x.titulo, lk('imagens')));
+  if (video) item(video.thumb, 'Vídeo: ' + (video.titulo || ''), video.url, 'video');
+  if (links.length) { const row = document.createElement('div'); row.className = 'links';
+    links.forEach(l => { const a = document.createElement('a'); a.href = l.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = l.rotulo + ' ›'; row.appendChild(a); });
+    box.appendChild(row); }
+  box.classList.add('vis'); timerImgs = setTimeout(() => box.classList.remove('vis'), 60000);
+}
+
+/* ---------- notificações push ---------- */
+function b64u(s){ const r = atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); }
+$('btnPush').onclick = async () => {
+  const info = $('pushInfo');
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      info.textContent = 'Indisponível aqui. No iPhone, adicione o app à Tela de Início e abra por lá.'; return; }
+    if (await Notification.requestPermission() !== 'granted') { info.textContent = 'Permissão negada nos ajustes do aparelho.'; return; }
+    info.textContent = 'Ativando…';
+    const reg = await navigator.serviceWorker.ready, h = {'x-aton-token': cfg.token};
+    const k = await fetch(base() + '/api/push/chave', {headers: h, cache: 'no-store'});
+    if (!k.ok) { info.textContent = 'O PC recusou (confira o token).'; return; }
+    const sub = await reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: b64u((await k.json()).chave)});
+    const r = await fetch(base() + '/api/push/inscrever', {method: 'POST', headers: Object.assign({'Content-Type': 'application/json'}, h),
+      body: JSON.stringify({inscricao: sub.toJSON()})});
+    info.textContent = r.ok ? 'Ativadas neste aparelho. Deve chegar um aviso de teste.' : 'O PC recusou a inscrição.';
+  } catch (e) { info.textContent = 'Não consegui ativar: ' + e.message; }
+};
 
 /* ---------- botões ---------- */
 $('btnTela').onclick = () => { setEstado('pensando'); enviar({tipo:'print'}); };

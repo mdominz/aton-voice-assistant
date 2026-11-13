@@ -48,3 +48,11 @@ LEIA-ME.txt
 monitores.json
 ultima_organizacao.json
 aton.pid
+
+# notificações push do app do celular
+vapid_private.pem
+push_inscricoes.json
+config.json.bak
+uso_claude.json
+resumo_matinal.txt
+historico.jsonl
